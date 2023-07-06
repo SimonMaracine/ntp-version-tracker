@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <signal.h>
 
 #include "helpers.h"
 
@@ -23,4 +24,16 @@ void print_mac(const uint8_t* mac, const char* end) {
     formatted_mac(mac, format);
 
     printf("%s%s", format, end);
+}
+
+int set_interrupt_handler(void(*interrupt_handler)(int)) {
+    struct sigaction sa = {0};
+    sa.sa_handler = interrupt_handler;
+
+    if (sigaction(SIGINT, &sa, NULL) < 0) {
+        fprintf(stderr, "Could not set interrupt handler\n");
+        return -1;
+    }
+
+    return 0;
 }

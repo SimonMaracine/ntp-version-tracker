@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <signal.h>
 
 #include "sniff_session.h"
 #include "helpers.h"
@@ -16,11 +17,11 @@ typedef struct {
     size_t count;
 } Macs;
 
-void print_all_macs(const Macs* macs, size_t count) {
+void print_all_macs(const Macs* macs) {
     char source[18];
     char destination[18];
 
-    for (size_t i = 0; i < count; i++) {
+    for (size_t i = 0; i < macs->count; i++) {
         formatted_mac(macs->pairs[i].source, source);
         formatted_mac(macs->pairs[i].destination, destination);
 
@@ -36,6 +37,7 @@ void store_mac_pair(const uint8_t* mac_source, const uint8_t* mac_destination, v
     memcpy(pair.destination, mac_destination, ETHER_ADDR_LEN);
 
     macs->pairs[macs->count] = pair;
+    macs->count++;
 }
 
 static void packet_sniffed(const struct ether_header* ethernet_header, void* user) {
@@ -46,7 +48,13 @@ static void packet_sniffed(const struct ether_header* ethernet_header, void* use
     print_mac(ethernet_header->ether_dhost, "\n");
 
     // Store MACs for later
-    store_mac_pair(ethernet_header->ether_shost, ethernet_header->ether_dhost, user);
+    // store_mac_pair(ethernet_header->ether_shost, ethernet_header->ether_dhost, user);
+}
+
+static void interrupt_handler(int signal) {
+    (void) signal;
+
+    sniff_stop_signal();
 }
 
 int main(int argc, char** argv) {
@@ -59,19 +67,28 @@ int main(int argc, char** argv) {
 
     const char* device = argv[1];
 
+    if (set_interrupt_handler(interrupt_handler) < 0) {
+        fprintf(stderr, "Could not set interrupt handler\n");
+        return 1;
+    }
+
     SniffSession session = {0};
 
-    if (initialize_session(&session, device) < 0) {
+    if (sniff_initialize_session(&session, device) < 0) {
         return 1;
     }
 
     Macs macs = {0};
-    const int SNIFF_COUNT = 20;
 
-    sniff_blocking(&session, SNIFF_COUNT, packet_sniffed, &macs);
+    // sniff_blocking(&session, 20, packet_sniffed, &macs);
 
-    deinitialize_session(&session);
+    if (sniff(&session, packet_sniffed, &macs) < 0) {
+        goto err_sniff;
+    }
 
-    printf("Optional:\n");
-    print_all_macs(&macs, SNIFF_COUNT);
+    printf("Quit\n");
+    // print_all_macs(&macs);
+
+err_sniff:
+    sniff_uninitialize_session(&session);
 }

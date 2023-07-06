@@ -3,20 +3,20 @@ OUT_DIR = out
 SOURCES = $(SRC_DIR)/*.c
 
 WARNINGS = -Wall -Wextra -pedantic
-LIBS = -lpcap -lpthread
+LIBS = -lpcap
+ARGS = -std=c11 -D _GNU_SOURCE
+# -std=c11 -D_POSIX_C_SOURCE=200809L
 
 .PHONY: all
 all: sniffer
 
 sniffer: $(SOURCES)
 	@mkdir -p $(OUT_DIR)
-	$(CC) $(SOURCES) $(WARNINGS) -static $(LIBS) -o $(OUT_DIR)/sniffer
-
-# -std=c11 -D_POSIX_C_SOURCE=200809L
+	$(CC) $(SOURCES) $(WARNINGS) $(ARGS) -static $(LIBS) -o $(OUT_DIR)/sniffer
 
 sniffer_local: $(SOURCES)
 	@mkdir -p $(OUT_DIR)
-	$(CC) $(SOURCES) $(WARNINGS) $(LIBS) -o $(OUT_DIR)/sniffer_local
+	$(CC) $(SOURCES) $(WARNINGS) $(ARGS) $(LIBS) -o $(OUT_DIR)/sniffer_local
 
 .PHONY: clean
 clean:

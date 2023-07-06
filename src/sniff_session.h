@@ -15,10 +15,12 @@ typedef struct {
     void* user_data;
 } SniffSession;
 
-int initialize_session(SniffSession* session, const char* device);
-void deinitialize_session(SniffSession* session);
+int sniff_initialize_session(SniffSession* session, const char* device);
+void sniff_uninitialize_session(SniffSession* session);
+
+void sniff_stop_signal();
 
 int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callback, void* user);
-int sniff_nonblocking(SniffSession* session, PacketSniffed callback, void* user);
+int sniff(SniffSession* session, PacketSniffed callback, void* user);
 
 #endif

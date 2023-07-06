@@ -3,7 +3,15 @@
 
 #include "logging.h"
 
-void log(const char* format, ...) {
+int log_initialize() {
+    return 0;
+}
+
+void log_uninitialize() {
+
+}
+
+void log_print(const char* format, ...) {
     va_list args;
     va_start(args, format);
 

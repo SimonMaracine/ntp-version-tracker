@@ -1,10 +1,15 @@
 #include <pcap/pcap.h>
 #include <net/ethernet.h>
 #include <signal.h>
-#include <pthread.h>
+#include <sys/select.h>
 #include <stdio.h>
+#include <time.h>
+#include <errno.h>
 
 #include "sniff_session.h"
+
+// Flag indicating if to keep sniffing
+static volatile sig_atomic_t running = 1;
 
 static int set_options(pcap_t* handle) {
     if (pcap_set_snaplen(handle, 65535) == PCAP_ERROR_ACTIVATED) {
@@ -87,20 +92,7 @@ static void reset_callback(SniffSession* session, PacketSniffed callback, void* 
     session->user_data = user;
 }
 
-static void interrupt_handler(int signal) {
-    pcap_breakloop();
-}
-
-static int set_interrupt_signal_handler() {
-    if (signal(SIGINT, interrupt_handler) == SIG_ERR) {  // TODO use sigaction instead
-        fprintf(stderr, "Could not set interrupt handler\n");
-        return -1;
-    }
-
-    return 0;
-}
-
-int initialize_session(SniffSession* session, const char* device) {
+int sniff_initialize_session(SniffSession* session, const char* device) {
     char err_msg[PCAP_ERRBUF_SIZE];
 
     if (pcap_init(PCAP_CHAR_ENC_UTF_8, err_msg) == PCAP_ERROR) {
@@ -108,10 +100,7 @@ int initialize_session(SniffSession* session, const char* device) {
         return -1;
     }
 
-    if (set_interrupt_signal_handler() < 0) {
-        return -1;
-    }
-
+    // This function does all the cleaning, in case of error
     pcap_t* handle = initialize_handle(device);
 
     if (handle == NULL) {
@@ -123,8 +112,12 @@ int initialize_session(SniffSession* session, const char* device) {
     return 0;
 }
 
-void deinitialize_session(SniffSession* session) {
+void sniff_uninitialize_session(SniffSession* session) {
     pcap_close(session->handle);
+}
+
+void sniff_stop_signal() {
+    running = 0;
 }
 
 // https://www.tcpdump.org/manpages/libpcap-1.10.4/pcap_loop.3pcap.html
@@ -150,33 +143,69 @@ int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callbac
     return 0;
 }
 
-static void* sniff_thread(void* args) {
-    const SniffSession* session = (const SniffSession*) args;
-
-    // Loop forever
-    const int result = pcap_dispatch(session->handle, 0, packet_sniffed, (unsigned char*) session);
-
-
-}
-
-int sniff_nonblocking(SniffSession* session, PacketSniffed callback, void* user) {
+int sniff(SniffSession* session, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
     printf("Starting sniffing...\n");
 
     char err_msg[PCAP_ERRBUF_SIZE];
 
-    // if (pcap_setnonblock(session->handle, 1, err_msg) < 0) {
-    //     fprintf(stderr, "Could not set session in non-blocking mode: %s\n", err_msg);
-    //     return -1;
-    // }
+    if (pcap_setnonblock(session->handle, 1, err_msg) < 0) {
+        fprintf(stderr, "Could not set session in non-blocking mode: %s\n", err_msg);
+        return -1;
+    }
 
-    // const int result = pcap_dispatch(session->handle, 0, packet_sniffed, (unsigned char*) session);
+    const int fd = pcap_get_selectable_fd(session->handle);
 
-    pthread_t thread;
+    if (fd < 0) {
+        fprintf(stderr, "Could not retrieve file descriptor\n");
+        return -1;
+    }
 
-    pthread_create(&thread, NULL, sniff_thread, session);
+    // Set a timeout of 1 second
+    struct timespec ts = {0};
+    ts.tv_sec = 1;
 
-    void* ret;
-    pthread_join(&thread, &ret);
+    // Used to unblock SIGINT during pselect
+    sigset_t empty_set;
+    sigemptyset(&empty_set);
+
+    // Block SIGINT signals by default
+    sigset_t block_set;
+    sigemptyset(&block_set);
+    sigaddset(&block_set, SIGINT);
+
+    // Set the signal mask
+    if (sigprocmask(SIG_BLOCK, &block_set, NULL) < 0) {
+        fprintf(stderr, "Error\n");
+        return -1;
+    }
+
+    while (running) {
+        fd_set files;
+        FD_ZERO(&files);
+        FD_SET(fd, &files);
+
+        // Block at most 1 second
+        const int result = pselect(fd + 1, &files, NULL, NULL, &ts, &empty_set);
+
+        if (result < 0 && errno != EINTR) {
+            fprintf(stderr, "An error occurred in pselect\n");
+            continue;
+        }
+
+        // Check if there is anything to read
+        if (FD_ISSET(fd, &files)) {
+            const int result = pcap_dispatch(session->handle, 0, packet_sniffed, (unsigned char*) session);
+
+            if (result < 0) {
+                fprintf(stderr, "An error occurred sniffing packets\n");
+                continue;
+            }
+
+            printf("Sniffed %d packet(s)!\n", result);
+        }
+    }
+
+    return 0;
 }

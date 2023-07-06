@@ -1,10 +1,12 @@
-#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
 #include <signal.h>
+#include <stdio.h>
 
 #include "sniff_session.h"
+#include "args.h"
+#include "logging.h"
 #include "helpers.h"
 
 typedef struct {
@@ -25,7 +27,7 @@ void print_all_macs(const Macs* macs) {
         formatted_mac(macs->pairs[i].source, source);
         formatted_mac(macs->pairs[i].destination, destination);
 
-        printf("src MAC: %s ---> dest MAC: %s\n", source, destination);
+        log_print("src MAC: %s ---> dest MAC: %s\n", source, destination);
     }
 }
 
@@ -42,10 +44,12 @@ void store_mac_pair(const uint8_t* mac_source, const uint8_t* mac_destination, v
 
 static void packet_sniffed(const struct ether_header* ethernet_header, void* user) {
     // Print MACs as they come
-    printf("S ");
-    print_mac(ethernet_header->ether_shost, "");
-    printf(" --- D ");
-    print_mac(ethernet_header->ether_dhost, "\n");
+    char source[18];
+    char destination[18];
+    formatted_mac(ethernet_header->ether_shost, source);
+    formatted_mac(ethernet_header->ether_dhost, destination);
+
+    log_print("S %s --- D %s (T %hu)\n", source, destination, ethernet_header->ether_type);
 
     // Store MACs for later
     // store_mac_pair(ethernet_header->ether_shost, ethernet_header->ether_dhost, user);
@@ -58,23 +62,25 @@ static void interrupt_handler(int signal) {
 }
 
 int main(int argc, char** argv) {
-    printf("Is little endian: %d\n", is_little_endian());
+    const Args* args = args_parse_arguments(argc, argv);
 
-    if (argc != 2) {
-        fprintf(stderr, "No device provided\n");
+    if (args == NULL) {
+        args_print_usage();
         return 1;
     }
 
-    const char* device = argv[1];
+    printf("device: %s, log_file: %s, log_target: %d\n", args->device, args->log_file, args->log_target);
+
+    log_initialize(args->log_file, (LogTarget) args->log_target);
 
     if (set_interrupt_handler(interrupt_handler) < 0) {
-        fprintf(stderr, "Could not set interrupt handler\n");
+        log_print("Could not set interrupt handler\n");
         return 1;
     }
 
     SniffSession session = {0};
 
-    if (sniff_initialize_session(&session, device) < 0) {
+    if (sniff_initialize_session(&session, args->device) < 0) {
         return 1;
     }
 
@@ -83,12 +89,15 @@ int main(int argc, char** argv) {
     // sniff_blocking(&session, 20, packet_sniffed, &macs);
 
     if (sniff(&session, packet_sniffed, &macs) < 0) {
-        goto err_sniff;
+        sniff_uninitialize_session(&session);
+        return 1;
     }
 
-    printf("Quit\n");
+    log_print("Quit\n");
     // print_all_macs(&macs);
 
-err_sniff:
     sniff_uninitialize_session(&session);
+    log_uninitialize();
+
+    return 0;
 }

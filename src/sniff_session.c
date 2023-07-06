@@ -2,33 +2,33 @@
 #include <net/ethernet.h>
 #include <signal.h>
 #include <sys/select.h>
-#include <stdio.h>
 #include <time.h>
 #include <errno.h>
 
 #include "sniff_session.h"
+#include "logging.h"
 
 // Flag indicating if to keep sniffing
 static volatile sig_atomic_t running = 1;
 
 static int set_options(pcap_t* handle) {
     if (pcap_set_snaplen(handle, 65535) == PCAP_ERROR_ACTIVATED) {
-        fprintf(stderr, "Could not set snaplen\n");
+        log_print("Could not set snaplen\n");
         return -1;
     }
 
     if (pcap_set_promisc(handle, 1) == PCAP_ERROR_ACTIVATED) {
-        fprintf(stderr, "Could not set promisc\n");
+        log_print("Could not set promisc\n");
         return -1;
     }
 
     if (pcap_set_timeout(handle, 1000) == PCAP_ERROR_ACTIVATED) {
-        fprintf(stderr, "Could not set timeout\n");
+        log_print("Could not set timeout\n");
         return -1;
     }
 
     if (pcap_set_buffer_size(handle, 4096) == PCAP_ERROR_ACTIVATED) {
-        fprintf(stderr, "Could not set buffer_size\n");
+        log_print("Could not set buffer_size\n");
         return -1;
     }
 
@@ -42,7 +42,7 @@ static pcap_t* initialize_handle(const char* device) {
     pcap_t* handle = pcap_create(device, err_msg);
 
     if (handle == NULL) {
-        fprintf(stderr, "Could not open device %s: %s\n", device, err_msg);
+        log_print("Could not open device %s: %s\n", device, err_msg);
         return NULL;
     }
 
@@ -54,9 +54,9 @@ static pcap_t* initialize_handle(const char* device) {
     const int result = pcap_activate(handle);
 
     if (result > 0) {
-        printf("Warning: %d\n", result);
+        log_print("Warning: %d\n", result);
     } if (result < 0) {
-        fprintf(stderr, "An error occurred: %d\n", result);
+        log_print("An error occurred: %d\n", result);
         goto err_handle;
     }
 
@@ -64,7 +64,7 @@ static pcap_t* initialize_handle(const char* device) {
     const int headers_type = pcap_datalink(handle);
 
     if (headers_type != DLT_EN10MB) {
-        fprintf(stderr, "Device %s does not provide Ethernet headers\n", device);
+        log_print("Device %s does not provide Ethernet headers\n", device);
         goto err_handle;
     }
 
@@ -96,7 +96,7 @@ int sniff_initialize_session(SniffSession* session, const char* device) {
     char err_msg[PCAP_ERRBUF_SIZE];
 
     if (pcap_init(PCAP_CHAR_ENC_UTF_8, err_msg) == PCAP_ERROR) {
-        fprintf(stderr, "Could not initialize pcap: %s\n", err_msg);
+        log_print("Could not initialize pcap: %s\n", err_msg);
         return -1;
     }
 
@@ -125,20 +125,22 @@ void sniff_stop_signal() {
 int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
-    printf("Starting sniffing...\n");
+    log_print("STARTING sniffing...\n");
 
     const int result = pcap_loop(session->handle, sniff_count, packet_sniffed, (unsigned char*) session);
 
     switch (result) {
         case 0:
-            printf("Sniffed all packets\n");
+            log_print("Sniffed all packets\n");
             break;
         case PCAP_ERROR_BREAK:
         case PCAP_ERROR_NOT_ACTIVATED:
         case PCAP_ERROR:
-            printf("An error occurred\n");
+            log_print("An error occurred\n");
             break;
     }
+
+    log_print("STOPPED sniffing\n");
 
     return 0;
 }
@@ -146,19 +148,19 @@ int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callbac
 int sniff(SniffSession* session, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
-    printf("Starting sniffing...\n");
+    log_print("STARTING sniffing...\n");
 
     char err_msg[PCAP_ERRBUF_SIZE];
 
     if (pcap_setnonblock(session->handle, 1, err_msg) < 0) {
-        fprintf(stderr, "Could not set session in non-blocking mode: %s\n", err_msg);
+        log_print("Could not set session in non-blocking mode: %s\n", err_msg);
         return -1;
     }
 
     const int fd = pcap_get_selectable_fd(session->handle);
 
     if (fd < 0) {
-        fprintf(stderr, "Could not retrieve file descriptor\n");
+        log_print("Could not retrieve file descriptor\n");
         return -1;
     }
 
@@ -177,7 +179,7 @@ int sniff(SniffSession* session, PacketSniffed callback, void* user) {
 
     // Set the signal mask
     if (sigprocmask(SIG_BLOCK, &block_set, NULL) < 0) {
-        fprintf(stderr, "Error\n");
+        log_print("Error blocking interrupt signal\n");
         return -1;
     }
 
@@ -190,7 +192,7 @@ int sniff(SniffSession* session, PacketSniffed callback, void* user) {
         const int result = pselect(fd + 1, &files, NULL, NULL, &ts, &empty_set);
 
         if (result < 0 && errno != EINTR) {
-            fprintf(stderr, "An error occurred in pselect\n");
+            log_print("An error occurred in pselect\n");
             continue;
         }
 
@@ -199,13 +201,15 @@ int sniff(SniffSession* session, PacketSniffed callback, void* user) {
             const int result = pcap_dispatch(session->handle, 0, packet_sniffed, (unsigned char*) session);
 
             if (result < 0) {
-                fprintf(stderr, "An error occurred sniffing packets\n");
+                log_print("An error occurred sniffing packets\n");
                 continue;
             }
 
-            printf("Sniffed %d packet(s)!\n", result);
+            log_print("Sniffed %d packet(s)!\n", result);
         }
     }
+
+    log_print("STOPPED sniffing\n");
 
     return 0;
 }

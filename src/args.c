@@ -5,15 +5,30 @@
 #include "args.h"
 #include "logging.h"
 
-static int parse_positive_int(const char* integer) {
-    char* end = NULL;
-    const long result = strtol(integer, &end, 10);
+static int parse_log_target(const char* input, unsigned int* result_mask) {
+    *result_mask = 0;
 
-    if (integer == end) {
-        return -1;
+    size_t index = 0;
+    char c = 0;
+
+    while ((c = input[index]) != '\0') {
+        switch (c) {
+            case 'f':
+            case 'F':
+                *result_mask |= LogFile;
+                break;
+            case 'c':
+            case 'C':
+                *result_mask |= LogConsole;
+                break;
+            default:
+                return -1;
+        }
+
+        index++;
     }
 
-    return (int) result;
+    return 0;
 }
 
 Args* args_parse_arguments(int argc, char** argv) {
@@ -21,21 +36,17 @@ Args* args_parse_arguments(int argc, char** argv) {
 
     // Default arguments
     args.log_file = "capture.log";
-    args.log_target = (int) LogConsole;
+    args.log_target_mask = LogConsole;
 
     switch (argc) {
         case 4: {
             args.device = argv[1];
             args.log_file = argv[2];
 
-            const int result = parse_positive_int(argv[3]);
-
-            if (result < 0 || !log_is_log_target(result)) {
+            if (parse_log_target(argv[3], &args.log_target_mask) < 0) {
                 printf("Invalid log target\n");
                 return NULL;
             }
-
-            args.log_target = result;
 
             break;
         }

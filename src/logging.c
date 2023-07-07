@@ -2,12 +2,13 @@
 #include <stdarg.h>
 #include <time.h>
 #include <string.h>
+#include <assert.h>
 
 #include "logging.h"
 
 // Logging is used everywhere, so use static memory
 
-static LogTarget g_log_target = LogNone;
+static unsigned int g_log_target_mask = 0;
 static FILE* g_log_file = NULL;  // TODO needs periodic flushing
 
 static void get_current_time(char* out) {
@@ -31,11 +32,11 @@ static void get_current_time(char* out) {
     sprintf(out, "%s", final_time);  // TODO
 }
 
-int log_initialize(const char* file_name, LogTarget target) {
-    g_log_target = target;
+int log_initialize(const char* file_name, unsigned int target_mask) {
+    g_log_target_mask = target_mask;
 
     // Don't deal with files, if not necessary
-    if (target == LogNone || target == LogConsole) {
+    if (!(target_mask & LogFile)) {
         return 0;
     }
 
@@ -69,10 +70,7 @@ void log_print(const char* format, ...) {
     va_list args;
     va_start(args, format);  // TODO can be put inside switch?
 
-    switch (g_log_target) {
-        case LogNone: {
-            break;
-        }
+    switch (g_log_target_mask) {
         case LogFile: {
             GET_CURRENT_TIME(current_time)
             LOG(format, args, g_log_file, current_time)
@@ -85,7 +83,7 @@ void log_print(const char* format, ...) {
 
             break;
         }
-        case LogFileConsole: {
+        case LogFile | LogConsole: {
             va_list args2;
             va_copy(args2, args);
 
@@ -97,22 +95,9 @@ void log_print(const char* format, ...) {
 
             break;
         }
+        default:
+            assert(0);
     }
 
     va_end(args);
-}
-
-bool log_is_log_target(int value) {
-    bool result = false;
-
-    switch (value) {
-        case LogNone:
-        case LogFile:
-        case LogConsole:
-        case LogFileConsole:
-            result = true;
-            break;
-    }
-
-    return result;
 }

@@ -1,20 +1,14 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-#include <stdbool.h>
-
-typedef enum {  // TODO maybe use bit masks
-    LogNone,
-    LogFile,
-    LogConsole,
-    LogFileConsole
+typedef enum {
+    LogFile = 1 << 0,
+    LogConsole = 1 << 1
 } LogTarget;
 
-int log_initialize(const char* file_name, LogTarget target);
+int log_initialize(const char* file_name, unsigned int target_mask);
 void log_uninitialize();
 
 void log_print(const char* format, ...);
-
-bool log_is_log_target(int value);
 
 #endif

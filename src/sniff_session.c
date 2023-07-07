@@ -54,9 +54,9 @@ static pcap_t* initialize_handle(const char* device) {
     const int result = pcap_activate(handle);
 
     if (result > 0) {
-        log_print("Warning: %d\n", result);
+        log_print("Warning on activating the device: %d\n", result);
     } if (result < 0) {
-        log_print("An error occurred: %d\n", result);
+        log_print("An error occurred activating the device: %d\n", result);
         goto err_handle;
     }
 

@@ -69,9 +69,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    printf("device: %s, log_file: %s, log_target: %d\n", args->device, args->log_file, args->log_target);
+    printf("device: %s, log_file: %s, log_target: %u\n", args->device, args->log_file, args->log_target_mask);
 
-    if (log_initialize(args->log_file, (LogTarget) args->log_target) < 0) {
+    if (log_initialize(args->log_file, args->log_target_mask) < 0) {
         return 1;
     }
 

@@ -9,40 +9,9 @@
 #include "logging.h"
 #include "helpers.h"
 
-typedef struct {
-    uint8_t source[ETHER_ADDR_LEN];
-    uint8_t destination[ETHER_ADDR_LEN];
-} MacPair;
-
-typedef struct {
-    MacPair pairs[128];
-    size_t count;
-} Macs;
-
-void print_all_macs(const Macs* macs) {
-    char source[18];
-    char destination[18];
-
-    for (size_t i = 0; i < macs->count; i++) {
-        formatted_mac(macs->pairs[i].source, source);
-        formatted_mac(macs->pairs[i].destination, destination);
-
-        log_print("src MAC: %s ---> dest MAC: %s\n", source, destination);
-    }
-}
-
-void store_mac_pair(const uint8_t* mac_source, const uint8_t* mac_destination, void* user) {
-    Macs* macs = (Macs*) user;
-
-    MacPair pair;
-    memcpy(pair.source, mac_source, ETHER_ADDR_LEN);
-    memcpy(pair.destination, mac_destination, ETHER_ADDR_LEN);
-
-    macs->pairs[macs->count] = pair;
-    macs->count++;
-}
-
 static void packet_sniffed(const struct ether_header* ethernet_header, void* user) {
+    (void) user;
+
     // Print MACs as they come
     char source[18];
     char destination[18];
@@ -51,8 +20,7 @@ static void packet_sniffed(const struct ether_header* ethernet_header, void* use
 
     log_print("S %s --- D %s (T %hu)\n", source, destination, ethernet_header->ether_type);
 
-    // Store MACs for later
-    // store_mac_pair(ethernet_header->ether_shost, ethernet_header->ether_dhost, user);
+    // Can do other stuff
 }
 
 static void interrupt_handler(int signal) {
@@ -69,7 +37,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    printf("device: %s, log_file: %s, log_target: %u\n", args->device, args->log_file, args->log_target_mask);
+    printf("device: %s, log_target: %u, log_file: %s\n", args->device, args->log_target_mask, args->log_file);
 
     if (log_initialize(args->log_file, args->log_target_mask) < 0) {
         return 1;
@@ -86,17 +54,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    Macs macs = {0};
-
     // sniff_blocking(&session, 20, packet_sniffed, &macs);
 
-    if (sniff(&session, packet_sniffed, &macs) < 0) {
+    if (sniff(&session, packet_sniffed, NULL) < 0) {
         sniff_uninitialize_session(&session);
         return 1;
     }
 
     log_print("Quit\n");
-    // print_all_macs(&macs);
 
     sniff_uninitialize_session(&session);
     log_uninitialize();

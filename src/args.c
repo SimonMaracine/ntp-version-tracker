@@ -35,24 +35,29 @@ Args* args_parse_arguments(int argc, char** argv) {
     static Args args = {0};
 
     // Default arguments
-    args.log_file = "capture.log";
     args.log_target_mask = LogConsole;
+    args.log_file = "capture.log";
 
     switch (argc) {
         case 4: {
             args.device = argv[1];
-            args.log_file = argv[2];
 
-            if (parse_log_target(argv[3], &args.log_target_mask) < 0) {
+            if (parse_log_target(argv[2], &args.log_target_mask) < 0) {
                 printf("Invalid log target\n");
                 return NULL;
             }
+
+            args.log_file = argv[3];
 
             break;
         }
         case 3: {
             args.device = argv[1];
-            args.log_file = argv[2];
+
+            if (parse_log_target(argv[2], &args.log_target_mask) < 0) {
+                printf("Invalid log target\n");
+                return NULL;
+            }
 
             break;
         }
@@ -67,11 +72,14 @@ Args* args_parse_arguments(int argc, char** argv) {
 
             break;
         }
+        default:
+            printf("Invalid number of arguments\n");
+            return NULL;
     }
 
     return &args;
 }
 
 void args_print_usage() {
-    printf("sniffer: <device> [<log_file> <log_target>]\n");
+    printf("sniffer: <device> [<log_target> <log_file>]\n");
 }

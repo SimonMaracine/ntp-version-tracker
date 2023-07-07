@@ -42,7 +42,7 @@ static pcap_t* initialize_handle(const char* device) {
     pcap_t* handle = pcap_create(device, err_msg);
 
     if (handle == NULL) {
-        log_print("Could not open device %s: %s\n", device, err_msg);
+        log_print("Could not open device `%s`: %s\n", device, err_msg);
         return NULL;
     }
 
@@ -54,9 +54,9 @@ static pcap_t* initialize_handle(const char* device) {
     const int result = pcap_activate(handle);
 
     if (result > 0) {
-        log_print("Warning on activating the device: %d\n", result);
+        log_print("Warning on activating device `%s`: %d\n", device, result);
     } if (result < 0) {
-        log_print("An error occurred activating the device: %d\n", result);
+        log_print("An error occurred activating device `%s`: %d\n", device, result);
         goto err_handle;
     }
 
@@ -64,7 +64,7 @@ static pcap_t* initialize_handle(const char* device) {
     const int headers_type = pcap_datalink(handle);
 
     if (headers_type != DLT_EN10MB) {
-        log_print("Device %s does not provide Ethernet headers\n", device);
+        log_print("Device `%s` does not provide Ethernet headers\n", device);
         goto err_handle;
     }
 
@@ -93,6 +93,8 @@ static void reset_callback(SniffSession* session, PacketSniffed callback, void* 
 }
 
 int sniff_initialize_session(SniffSession* session, const char* device) {
+    // Argument device must be a literal string
+
     char err_msg[PCAP_ERRBUF_SIZE];
 
     if (pcap_init(PCAP_CHAR_ENC_UTF_8, err_msg) == PCAP_ERROR) {
@@ -108,6 +110,7 @@ int sniff_initialize_session(SniffSession* session, const char* device) {
     }
 
     session->handle = handle;
+    session->device = device;
 
     return 0;
 }
@@ -125,7 +128,7 @@ void sniff_stop_signal() {
 int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
-    log_print("STARTING sniffing\n");
+    log_print("STARTING sniffing on device `%s`\n", session->device);
 
     const int result = pcap_loop(session->handle, sniff_count, packet_sniffed, (unsigned char*) session);
 
@@ -140,7 +143,7 @@ int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callbac
             break;
     }
 
-    log_print("STOPPED sniffing\n");
+    log_print("STOPPED sniffing on device `%s`\n", session->device);
 
     return 0;
 }
@@ -148,7 +151,7 @@ int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callbac
 int sniff(SniffSession* session, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
-    log_print("STARTING sniffing\n");
+    log_print("STARTING sniffing on device `%s`\n", session->device);
 
     char err_msg[PCAP_ERRBUF_SIZE];
 
@@ -205,11 +208,11 @@ int sniff(SniffSession* session, PacketSniffed callback, void* user) {
                 continue;
             }
 
-            log_print("Sniffed %d packet(s)!\n", result);
+            log_print("Sniffed %d packet(s)\n", result);
         }
     }
 
-    log_print("STOPPED sniffing\n");
+    log_print("STOPPED sniffing on device `%s`\n", session->device);
 
     return 0;
 }

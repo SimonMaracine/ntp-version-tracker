@@ -8,7 +8,7 @@
 
 // Logging is used everywhere, so use static memory
 
-static unsigned int g_log_target_mask = 0;
+static unsigned int g_log_target_mask = 0;  // Mask 0 is invalid
 static FILE* g_log_file = NULL;  // TODO needs periodic flushing
 
 static void get_current_time(char* out) {
@@ -24,15 +24,14 @@ static void get_current_time(char* out) {
 
     char* formatted_time = asctime(timeinfo);
 
-    // Get rid of the new line
-    char final_time[25];
-    strncpy(final_time, formatted_time, 24);
-    final_time[24] = '\0';
-
-    sprintf(out, "%s", final_time);  // TODO
+    // Get rid of the new line and write the result
+    strncpy(out, formatted_time, 24);
+    out[24] = '\0';
 }
 
 int log_initialize(const char* file_name, unsigned int target_mask) {
+    assert(target_mask != 0);
+
     g_log_target_mask = target_mask;
 
     // Don't deal with files, if not necessary
@@ -43,7 +42,7 @@ int log_initialize(const char* file_name, unsigned int target_mask) {
     g_log_file = fopen(file_name, "a");
 
     if (g_log_file == NULL) {
-        printf("Could not open log file\n");
+        printf("Could not open log file `%s`\n", file_name);
         return -1;
     }
 
@@ -58,38 +57,40 @@ void log_uninitialize() {
     fclose(g_log_file);
 }
 
-#define GET_CURRENT_TIME(out) \
-    char out[25]; \
-    get_current_time(out);
-
-#define LOG(format, args, file, current_time) \
-    fprintf(file, "[%s] ", current_time); \
-    vfprintf(file, format, args);
-
 void log_print(const char* format, ...) {
+    // Logging to at least one target is mandatory
+
     va_list args;
-    va_start(args, format);  // TODO can be put inside switch?
+    va_start(args, format);
+
+    char current_time[25];
+    get_current_time(current_time);
 
     switch (g_log_target_mask) {
         case LogFile: {
-            GET_CURRENT_TIME(current_time)
-            LOG(format, args, g_log_file, current_time)
+            assert(g_log_file != NULL);
+
+            fprintf(g_log_file, "[%s] ", current_time);
+            vfprintf(g_log_file, format, args);
 
             break;
         }
         case LogConsole: {
-            GET_CURRENT_TIME(current_time)
-            LOG(format, args, stdout, current_time)
+            fprintf(stdout, "[%s] ", current_time);
+            vfprintf(stdout, format, args);
 
             break;
         }
         case LogFile | LogConsole: {
+            assert(g_log_file != NULL);
+
             va_list args2;
             va_copy(args2, args);
 
-            GET_CURRENT_TIME(current_time)
-            LOG(format, args, g_log_file, current_time)
-            LOG(format, args2, stdout, current_time)
+            fprintf(g_log_file, "[%s] ", current_time);
+            vfprintf(g_log_file, format, args);
+            fprintf(stdout, "[%s] ", current_time);
+            vfprintf(stdout, format, args2);
 
             va_end(args2);
 

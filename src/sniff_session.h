@@ -10,6 +10,7 @@ typedef void(*PacketSniffed)(const struct ether_header* ethernet_header, void* u
 
 typedef struct {
     pcap_t* handle;
+    const char* device;
 
     PacketSniffed callback;
     void* user_data;

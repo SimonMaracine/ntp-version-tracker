@@ -2,8 +2,9 @@
 #define HELPERS_C
 
 #include <stdint.h>
+#include <stdbool.h>
 
-int is_little_endian();
+bool is_little_endian();
 void formatted_mac(const uint8_t* mac, char* out);
 int set_interrupt_handler(void(*interrupt_handler)(int));
 

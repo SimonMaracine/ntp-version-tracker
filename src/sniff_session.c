@@ -94,6 +94,7 @@ static void reset_callback(SniffSession* session, PacketSniffed callback, void* 
 
 int sniff_initialize_session(SniffSession* session, const char* device) {
     // Argument device must be a literal string
+    // Logging must have been initialized already
 
     char err_msg[PCAP_ERRBUF_SIZE];
 

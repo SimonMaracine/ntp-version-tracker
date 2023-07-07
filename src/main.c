@@ -39,12 +39,11 @@ int main(int argc, char** argv) {
 
     printf("device: %s, log_target: %u, log_file: %s\n", args->device, args->log_target_mask, args->log_file);
 
-    if (log_initialize(args->log_file, args->log_target_mask) < 0) {
+    if (set_interrupt_handler(interrupt_handler) < 0) {
         return 1;
     }
 
-    if (set_interrupt_handler(interrupt_handler) < 0) {
-        log_print("Could not set interrupt handler\n");
+    if (log_initialize(args->log_file, args->log_target_mask) < 0) {
         return 1;
     }
 

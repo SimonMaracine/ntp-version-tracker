@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 #include "helpers.h"
-#include "logging.h"
 
 bool is_little_endian() {
     const volatile uint32_t whatever = 0x0001;
@@ -23,7 +22,7 @@ int set_interrupt_handler(void(*interrupt_handler)(int)) {
     sa.sa_handler = interrupt_handler;
 
     if (sigaction(SIGINT, &sa, NULL) < 0) {
-        log_print("Could not set interrupt handler\n");
+        printf("Could not set interrupt handler\n");
         return -1;
     }
 

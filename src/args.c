@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <assert.h>
 
 #include "args.h"
 #include "logging.h"
+#include "sniff_session.h"
 
 static int parse_log_target(const char* input, unsigned int* result_mask) {
     *result_mask = 0;
@@ -31,6 +35,30 @@ static int parse_log_target(const char* input, unsigned int* result_mask) {
     return 0;
 }
 
+static Command parse_capture_command(int option) {
+    switch (option) {
+        case 'd':
+            return CmdCaptureDevice;
+        case 'f':
+            return CmdCaptureFile;
+        default:
+            assert(0);
+            break;
+    }
+}
+
+static Command parse_miscellaneous_command(int option) {
+    switch (option) {
+        case 'h':
+            return CmdHelp;
+        case 'v':
+            return CmdVersion;
+        default:
+            assert(0);
+            break;
+    }
+}
+
 Args* args_parse_arguments(int argc, char** argv) {
     static Args args = {0};
 
@@ -38,48 +66,99 @@ Args* args_parse_arguments(int argc, char** argv) {
     args.log_target_mask = LogConsole;
     args.log_file = "capture.log";
 
-    switch (argc) {
-        case 4: {
-            args.device = argv[1];
+    // Don't print error messages from the library
+    opterr = 0;
 
-            if (parse_log_target(argv[2], &args.log_target_mask) < 0) {
-                printf("Invalid log target\n");
+    int c = 0;
+
+    while ((c = getopt(argc, argv, "d:f:t:l:hv")) != -1) {
+        switch (c) {
+            case 'd':
+            case 'f':
+                if (args.command != CmdNone) {
+                    printf("Option -%c must not be used with other options, except -t and -l\n", c);
+                    return NULL;
+                }
+
+                args.device_or_file = optarg;
+                args.command = parse_capture_command(c);
+
+                break;
+            case 't':
+                if (parse_log_target(optarg, &args.log_target_mask) < 0) {
+                    printf("Invalid log target\n");
+                    return NULL;
+                }
+
+                break;
+            case 'l':
+                args.log_file = optarg;
+
+                break;
+            case 'h':
+            case 'v':
+                if (optind != 2) {
+                    printf("Option -%c must be the only one\n", c);
+                    return NULL;
+                }
+
+                args.command = parse_miscellaneous_command(c);
+
+                break;
+            case '?':
+                switch (optopt) {
+                    case 'd':
+                    case 'f':
+                    case 't':
+                    case 'l':
+                        printf("Option -%c requires an argument\n", optopt);
+                        break;
+                    default:
+                        if (isprint(optopt)) {
+                            printf("Unknown option `-%c`\n", optopt);
+                        } else {
+                            printf("Unknown option character `\\x%x`\n", optopt);
+                        }
+                }
+
                 return NULL;
-            }
 
-            args.log_file = argv[3];
-
-            break;
+                break;
+            default:
+                abort();
         }
-        case 3: {
-            args.device = argv[1];
+    }
 
-            if (parse_log_target(argv[2], &args.log_target_mask) < 0) {
-                printf("Invalid log target\n");
-                return NULL;
-            }
+    if (optind < argc) {
+        printf("Invalid option(s)\n");
+        return NULL;
+    }
 
-            break;
-        }
-        case 2: {
-            args.device = argv[1];
-
-            break;
-        }
-        case 1: {
-            printf("No device provided\n");
-            return NULL;
-
-            break;
-        }
-        default:
-            printf("Invalid number of arguments\n");
-            return NULL;
+    if (args.command == CmdNone) {
+        printf("No device provided\n");
+        return NULL;
     }
 
     return &args;
 }
 
-void args_print_usage() {
-    printf("sniffer: <device> [<log_target> <log_file>]\n");
+void args_print_help() {
+    printf(
+        "usage:\n"
+        "    sniffer -d <device> [-t <log_target> -l <log_file>]\n"
+        "    sniffer -f <file> [-t <log_target> -l <log_file>]\n"
+        "\n"
+        "commands:\n"
+        "    -d Capture a device\n"
+        "    -f Capture a save file\n"
+        "    -t Set the log target (optional)\n"
+        "       Possible values are [cCfF]+\n"
+        "    -l Set the log file path, if even used (optional)\n"
+        "    -h Display this help\n"
+        "    -v Show version\n"
+    );
+}
+
+void args_print_version() {
+    printf("sniffer v0.1.0 | %s\n", sniff_get_pcap_version());
 }

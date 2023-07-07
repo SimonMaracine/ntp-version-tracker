@@ -10,18 +10,23 @@ typedef void(*PacketSniffed)(const struct ether_header* ethernet_header, void* u
 
 typedef struct {
     pcap_t* handle;
-    const char* device;
+    const char* device_or_file;
 
     PacketSniffed callback;
     void* user_data;
 } SniffSession;
 
-int sniff_initialize_session(SniffSession* session, const char* device);
+typedef enum {
+    SniffDevice,
+    SniffFile,
+} SniffType;
+
+int sniff_initialize_session(SniffSession* session, const char* device_or_file, SniffType type);
 void sniff_uninitialize_session(SniffSession* session);
 
-void sniff_stop_signal();
-
-int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callback, void* user);
 int sniff(SniffSession* session, PacketSniffed callback, void* user);
+
+void sniff_stop_signal();
+const char* sniff_get_pcap_version();
 
 #endif

@@ -4,6 +4,7 @@
 #include <sys/select.h>
 #include <time.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "sniff_session.h"
 #include "logging.h"
@@ -35,15 +36,32 @@ static int set_options(pcap_t* handle) {
     return 0;
 }
 
-static pcap_t* initialize_handle(const char* device) {
+static pcap_t* initialize_handle(const char* device_or_file, SniffType type) {
     char err_msg[PCAP_ERRBUF_SIZE];
 
     // Create a session for sniffing
-    pcap_t* handle = pcap_create(device, err_msg);
+    pcap_t* handle = NULL;
+
+    switch (type) {
+        case SniffDevice:
+            handle = pcap_create(device_or_file, err_msg);
+            break;
+        case SniffFile:
+            handle = pcap_open_offline(device_or_file, err_msg);
+            break;
+        default:
+            assert(0);
+            break;
+    }
 
     if (handle == NULL) {
-        log_print("Could not open device `%s`: %s\n", device, err_msg);
+        log_print("Could not open device `%s`: %s\n", device_or_file, err_msg);
         return NULL;
+    }
+
+    if (type == SniffFile) {
+        // Done with initialization
+        return handle;
     }
 
     if (set_options(handle) < 0) {
@@ -54,9 +72,9 @@ static pcap_t* initialize_handle(const char* device) {
     const int result = pcap_activate(handle);
 
     if (result > 0) {
-        log_print("Warning on activating device `%s`: %d\n", device, result);
+        log_print("Warning on activating device `%s`: %d\n", device_or_file, result);
     } if (result < 0) {
-        log_print("An error occurred activating device `%s`: %d\n", device, result);
+        log_print("An error occurred activating device `%s`: %d\n", device_or_file, result);
         goto err_handle;
     }
 
@@ -64,7 +82,7 @@ static pcap_t* initialize_handle(const char* device) {
     const int headers_type = pcap_datalink(handle);
 
     if (headers_type != DLT_EN10MB) {
-        log_print("Device `%s` does not provide Ethernet headers\n", device);
+        log_print("Device `%s` does not provide Ethernet headers\n", device_or_file);
         goto err_handle;
     }
 
@@ -92,8 +110,8 @@ static void reset_callback(SniffSession* session, PacketSniffed callback, void* 
     session->user_data = user;
 }
 
-int sniff_initialize_session(SniffSession* session, const char* device) {
-    // Argument device must be a literal string
+int sniff_initialize_session(SniffSession* session, const char* device_or_file, SniffType type) {
+    // Argument device_or_file must be a literal string
     // Logging must have been initialized already
 
     char err_msg[PCAP_ERRBUF_SIZE];
@@ -104,14 +122,14 @@ int sniff_initialize_session(SniffSession* session, const char* device) {
     }
 
     // This function does all the cleaning, in case of error
-    pcap_t* handle = initialize_handle(device);
+    pcap_t* handle = initialize_handle(device_or_file, type);
 
     if (handle == NULL) {
         return -1;
     }
 
     session->handle = handle;
-    session->device = device;
+    session->device_or_file = device_or_file;
 
     return 0;
 }
@@ -120,39 +138,13 @@ void sniff_uninitialize_session(SniffSession* session) {
     pcap_close(session->handle);
 }
 
-void sniff_stop_signal() {
-    running = 0;
-}
-
 // https://www.tcpdump.org/manpages/libpcap-1.10.4/pcap_loop.3pcap.html
 
-int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callback, void* user) {
-    reset_callback(session, callback, user);
-
-    log_print("STARTING sniffing on device `%s`\n", session->device);
-
-    const int result = pcap_loop(session->handle, sniff_count, packet_sniffed, (unsigned char*) session);
-
-    switch (result) {
-        case 0:
-            log_print("Sniffed all packets\n");
-            break;
-        case PCAP_ERROR_BREAK:
-        case PCAP_ERROR_NOT_ACTIVATED:
-        case PCAP_ERROR:
-            log_print("An error occurred\n");
-            break;
-    }
-
-    log_print("STOPPED sniffing on device `%s`\n", session->device);
-
-    return 0;
-}
-
+// FIXME save files are captured differently (blocking mode)
 int sniff(SniffSession* session, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
-    log_print("STARTING sniffing on device `%s`\n", session->device);
+    log_print("STARTING sniffing on device `%s`\n", session->device_or_file);
 
     char err_msg[PCAP_ERRBUF_SIZE];
 
@@ -213,7 +205,15 @@ int sniff(SniffSession* session, PacketSniffed callback, void* user) {
         }
     }
 
-    log_print("STOPPED sniffing on device `%s`\n", session->device);
+    log_print("STOPPED sniffing on device `%s`\n", session->device_or_file);
 
     return 0;
+}
+
+void sniff_stop_signal() {
+    running = 0;
+}
+
+const char* sniff_get_pcap_version() {
+    return pcap_lib_version();
 }

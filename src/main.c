@@ -3,6 +3,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "sniff_session.h"
 #include "args.h"
@@ -29,15 +30,13 @@ static void interrupt_handler(int signal) {
     sniff_stop_signal();
 }
 
-int main(int argc, char** argv) {
-    const Args* args = args_parse_arguments(argc, argv);
-
-    if (args == NULL) {
-        args_print_usage();
-        return 1;
-    }
-
-    printf("device: %s, log_target: %u, log_file: %s\n", args->device, args->log_target_mask, args->log_file);
+static int capture(const Args* args) {
+    printf(
+        "device: %s, log_target: %u, log_file: %s\n",
+        args->device_or_file,
+        args->log_target_mask,
+        args->log_file
+    );
 
     if (set_interrupt_handler(interrupt_handler) < 0) {
         return 1;
@@ -49,11 +48,11 @@ int main(int argc, char** argv) {
 
     SniffSession session = {0};
 
-    if (sniff_initialize_session(&session, args->device) < 0) {
+    const SniffType type = args->command == CmdCaptureDevice ? SniffDevice : SniffFile;
+
+    if (sniff_initialize_session(&session, args->device_or_file, type) < 0) {
         return 1;
     }
-
-    // sniff_blocking(&session, 20, packet_sniffed, &macs);
 
     if (sniff(&session, packet_sniffed, NULL) < 0) {
         sniff_uninitialize_session(&session);
@@ -66,4 +65,33 @@ int main(int argc, char** argv) {
     log_uninitialize();
 
     return 0;
+}
+
+int main(int argc, char** argv) {
+    const Args* args = args_parse_arguments(argc, argv);
+
+    if (args == NULL) {
+        args_print_help();
+        return 1;
+    }
+
+    int code = 0;
+
+    switch (args->command) {
+        case CmdCaptureDevice:
+        case CmdCaptureFile:
+            code = capture(args);
+            break;
+        case CmdHelp:
+            args_print_help();
+            break;
+        case CmdVersion:
+            args_print_version();
+            break;
+        case CmdNone:
+            assert(0);
+            break;
+    }
+
+    return code;
 }

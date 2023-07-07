@@ -98,6 +98,7 @@ void log_print(const char* format, ...) {
         }
         default:
             assert(0);
+            break;
     }
 
     va_end(args);

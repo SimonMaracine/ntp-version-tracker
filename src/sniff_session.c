@@ -125,7 +125,7 @@ void sniff_stop_signal() {
 int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
-    log_print("STARTING sniffing...\n");
+    log_print("STARTING sniffing\n");
 
     const int result = pcap_loop(session->handle, sniff_count, packet_sniffed, (unsigned char*) session);
 
@@ -148,7 +148,7 @@ int sniff_blocking(SniffSession* session, int sniff_count, PacketSniffed callbac
 int sniff(SniffSession* session, PacketSniffed callback, void* user) {
     reset_callback(session, callback, user);
 
-    log_print("STARTING sniffing...\n");
+    log_print("STARTING sniffing\n");
 
     char err_msg[PCAP_ERRBUF_SIZE];
 

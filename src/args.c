@@ -18,15 +18,18 @@ static int parse_positive_int(const char* integer) {
 
 Args* args_parse_arguments(int argc, char** argv) {
     static Args args = {0};
-    args.log_file = "capture.log";
-    args.log_target = 0;
 
-    if (argc == 4) {
+    // Default arguments
+    args.log_file = "capture.log";
+    args.log_target = (int) LogConsole;
+
+    if (argc == 4) {  // TODO switch
         args.device = argv[1];
         args.log_file = argv[2];
 
         const int result = parse_positive_int(argv[3]);
-        if (result < 0) {
+
+        if (result < 0 || !log_is_log_target(result)) {
             printf("Invalid log target\n");
             return NULL;
         }

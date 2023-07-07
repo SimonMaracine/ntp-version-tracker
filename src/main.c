@@ -71,7 +71,9 @@ int main(int argc, char** argv) {
 
     printf("device: %s, log_file: %s, log_target: %d\n", args->device, args->log_file, args->log_target);
 
-    log_initialize(args->log_file, (LogTarget) args->log_target);
+    if (log_initialize(args->log_file, (LogTarget) args->log_target) < 0) {
+        return 1;
+    }
 
     if (set_interrupt_handler(interrupt_handler) < 0) {
         log_print("Could not set interrupt handler\n");

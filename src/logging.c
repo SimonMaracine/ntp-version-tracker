@@ -28,7 +28,7 @@ static void get_current_time(char* out) {
     strncpy(final_time, formatted_time, 24);
     final_time[24] = '\0';
 
-    sprintf(out, "%s", final_time);
+    sprintf(out, "%s", final_time);  // TODO
 }
 
 int log_initialize(const char* file_name, LogTarget target) {
@@ -86,13 +86,33 @@ void log_print(const char* format, ...) {
             break;
         }
         case LogFileConsole: {
+            va_list args2;
+            va_copy(args2, args);
+
             GET_CURRENT_TIME(current_time)
             LOG(format, args, g_log_file, current_time)
-            LOG(format, args, stdout, current_time)
+            LOG(format, args2, stdout, current_time)
+
+            va_end(args2);
 
             break;
         }
     }
 
     va_end(args);
+}
+
+bool log_is_log_target(int value) {
+    bool result = false;
+
+    switch (value) {
+        case LogNone:
+        case LogFile:
+        case LogConsole:
+        case LogFileConsole:
+            result = true;
+            break;
+    }
+
+    return result;
 }

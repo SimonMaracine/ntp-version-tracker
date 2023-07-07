@@ -23,26 +23,39 @@ Args* args_parse_arguments(int argc, char** argv) {
     args.log_file = "capture.log";
     args.log_target = (int) LogConsole;
 
-    if (argc == 4) {  // TODO switch
-        args.device = argv[1];
-        args.log_file = argv[2];
+    switch (argc) {
+        case 4: {
+            args.device = argv[1];
+            args.log_file = argv[2];
 
-        const int result = parse_positive_int(argv[3]);
+            const int result = parse_positive_int(argv[3]);
 
-        if (result < 0 || !log_is_log_target(result)) {
-            printf("Invalid log target\n");
-            return NULL;
+            if (result < 0 || !log_is_log_target(result)) {
+                printf("Invalid log target\n");
+                return NULL;
+            }
+
+            args.log_target = result;
+
+            break;
         }
+        case 3: {
+            args.device = argv[1];
+            args.log_file = argv[2];
 
-        args.log_target = result;
-    } else if (argc == 3) {
-        args.device = argv[1];
-        args.log_file = argv[2];
-    } else if (argc == 2) {
-        args.device = argv[1];
-    } else {
-        printf("No device provided\n");
-        return NULL;
+            break;
+        }
+        case 2: {
+            args.device = argv[1];
+
+            break;
+        }
+        case 1: {
+            printf("No device provided\n");
+            return NULL;
+
+            break;
+        }
     }
 
     return &args;

@@ -4,7 +4,7 @@
 typedef struct {
     const char* device;
     const char* log_file;
-    int log_target;
+    int log_target;  // TODO maybe use bit masks and strings
 } Args;
 
 Args* args_parse_arguments(int argc, char** argv);

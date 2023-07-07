@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-typedef enum {  // TODO use bit masks?
+typedef enum {  // TODO maybe use bit masks
     LogNone,
     LogFile,
     LogConsole,

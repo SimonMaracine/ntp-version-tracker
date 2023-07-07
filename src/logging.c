@@ -42,7 +42,7 @@ int log_initialize(const char* file_name, LogTarget target) {
     g_log_file = fopen(file_name, "a");
 
     if (g_log_file == NULL) {
-        log_print("Could not open log file\n");
+        printf("Could not open log file\n");
         return -1;
     }
 

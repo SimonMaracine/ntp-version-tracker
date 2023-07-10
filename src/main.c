@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "sniff_session.h"
+#include "capture_session.h"
 #include "args.h"
 #include "logging.h"
 #include "helpers.h"
@@ -27,7 +27,7 @@ static void packet_sniffed(const struct ether_header* ethernet_header, void* use
 static void interrupt_handler(int signal) {
     (void) signal;
 
-    sniff_stop_signal();
+    cap_stop_signal();
 }
 
 static int capture(const Args* args) {
@@ -46,22 +46,22 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    SniffSession session = {0};
+    CapSession session = {0};
 
-    const SniffType type = args->command == CmdCaptureDevice ? SniffDevice : SniffFile;
+    const CapType type = args->command == CmdCaptureDevice ? CapDevice : CapFile;
 
-    if (sniff_initialize_session(&session, args->device_or_file, type) < 0) {
+    if (cap_initialize_session(&session, args->device_or_file, type) < 0) {
         return 1;
     }
 
-    if (sniff(&session, packet_sniffed, NULL) < 0) {
-        sniff_uninitialize_session(&session);
+    if (cap_capture(&session, packet_sniffed, NULL) < 0) {
+        cap_uninitialize_session(&session);
         return 1;
     }
 
     log_print("Quit\n");
 
-    sniff_uninitialize_session(&session);
+    cap_uninitialize_session(&session);
     log_uninitialize();
 
     return 0;

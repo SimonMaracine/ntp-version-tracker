@@ -7,7 +7,7 @@
 
 #include "args.h"
 #include "logging.h"
-#include "sniff_session.h"
+#include "capture_session.h"
 
 static int parse_log_target(const char* input, unsigned int* result_mask) {
     *result_mask = 0;
@@ -145,8 +145,8 @@ Args* args_parse_arguments(int argc, char** argv) {
 void args_print_help() {
     printf(
         "usage:\n"
-        "    sniffer -d <device> [-t <log_target> -l <log_file>]\n"
-        "    sniffer -f <file> [-t <log_target> -l <log_file>]\n"
+        "    ntp_version_tracker -d <device> [-t <log_target> -l <log_file>]\n"
+        "    ntp_version_tracker -f <file> [-t <log_target> -l <log_file>]\n"
         "\n"
         "commands:\n"
         "    -d Capture a device\n"
@@ -160,5 +160,5 @@ void args_print_help() {
 }
 
 void args_print_version() {
-    printf("sniffer v0.1.0 | %s\n", sniff_get_pcap_version());
+    printf("ntp-version-tracker v0.1.0 | %s\n", cap_get_pcap_version());
 }

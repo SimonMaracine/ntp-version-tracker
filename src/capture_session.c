@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "sniff_session.h"
+#include "capture_session.h"
 #include "logging.h"
 
 // Flag indicating if to keep sniffing
@@ -36,17 +36,17 @@ static int set_options(pcap_t* handle) {
     return 0;
 }
 
-static pcap_t* initialize_handle(const char* device_or_file, SniffType type) {
+static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     char err_msg[PCAP_ERRBUF_SIZE];
 
     // Create a session for sniffing
     pcap_t* handle = NULL;
 
     switch (type) {
-        case SniffDevice:
+        case CapDevice:
             handle = pcap_create(device_or_file, err_msg);
             break;
-        case SniffFile:
+        case CapFile:
             handle = pcap_open_offline(device_or_file, err_msg);
             break;
         default:
@@ -59,7 +59,7 @@ static pcap_t* initialize_handle(const char* device_or_file, SniffType type) {
         return NULL;
     }
 
-    if (type == SniffFile) {
+    if (type == CapFile) {
         // Done with initialization
         return handle;
     }
@@ -100,17 +100,17 @@ static void packet_sniffed(unsigned char* user, const struct pcap_pkthdr* header
 
     const struct ether_header* ethernet_header = (const struct ether_header*) packet;
 
-    SniffSession* session = (SniffSession*) user;
+    CapSession* session = (CapSession*) user;
     session->callback(ethernet_header, session->user_data);
 }
 
 // Call this every time sniffing begins
-static void reset_callback(SniffSession* session, PacketSniffed callback, void* user) {
+static void reset_callback(CapSession* session, PacketCaped callback, void* user) {
     session->callback = callback;
     session->user_data = user;
 }
 
-int sniff_initialize_session(SniffSession* session, const char* device_or_file, SniffType type) {
+int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type) {
     // Argument device_or_file must be a literal string
     // Logging must have been initialized already
 
@@ -134,14 +134,14 @@ int sniff_initialize_session(SniffSession* session, const char* device_or_file, 
     return 0;
 }
 
-void sniff_uninitialize_session(SniffSession* session) {
+void cap_uninitialize_session(CapSession* session) {
     pcap_close(session->handle);
 }
 
 // https://www.tcpdump.org/manpages/libpcap-1.10.4/pcap_loop.3pcap.html
 
 // FIXME save files are captured differently (blocking mode)
-int sniff(SniffSession* session, PacketSniffed callback, void* user) {
+int cap_capture(CapSession* session, PacketCaped callback, void* user) {
     reset_callback(session, callback, user);
 
     log_print("STARTING sniffing on device `%s`\n", session->device_or_file);
@@ -210,10 +210,10 @@ int sniff(SniffSession* session, PacketSniffed callback, void* user) {
     return 0;
 }
 
-void sniff_stop_signal() {
+void cap_stop_signal() {
     running = 0;
 }
 
-const char* sniff_get_pcap_version() {
+const char* cap_get_pcap_version() {
     return pcap_lib_version();
 }

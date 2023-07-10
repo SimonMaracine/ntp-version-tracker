@@ -1,6 +1,6 @@
 SRC_DIR = src
 OUT_DIR = out
-SOURCES = $(SRC_DIR)/*.c
+SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/*/*.c)
 BIN = ntp_version_tracker
 
 # Compiler flags

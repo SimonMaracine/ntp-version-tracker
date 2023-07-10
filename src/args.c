@@ -7,7 +7,7 @@
 
 #include "args.h"
 #include "logging.h"
-#include "capture_session.h"
+#include "capture/session.h"
 
 static int parse_log_target(const char* input, unsigned int* result_mask) {
     *result_mask = 0;

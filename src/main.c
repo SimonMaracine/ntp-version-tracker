@@ -5,22 +5,22 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "capture_session.h"
+#include "capture/session.h"
 #include "args.h"
 #include "logging.h"
 #include "helpers.h"
 
 // User side callback for processing packets
-static void packet_captured(const struct ether_header* ethernet_header, void* user) {
+static void packet_captured_ether(const struct ether_header* header, void* user) {
     (void) user;
 
     // Print MACs as they come
     char source[18];
     char destination[18];
-    formatted_mac(ethernet_header->ether_shost, source);
-    formatted_mac(ethernet_header->ether_dhost, destination);
+    formatted_mac(header->ether_shost, source);
+    formatted_mac(header->ether_dhost, destination);
 
-    log_print("S %s --- D %s (T %hu)\n", source, destination, ethernet_header->ether_type);
+    log_print("S %s --- D %s (T %hu)\n", source, destination, header->ether_type);
 
     // Can do other stuff
 }
@@ -64,7 +64,9 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    if (cap_start_capture(&session, packet_captured, NULL) < 0) {
+    cap_want_ethernet(&session, packet_captured_ether);
+
+    if (cap_start_capture(&session, NULL) < 0) {
         cap_uninitialize_session(&session);
         return 1;
     }

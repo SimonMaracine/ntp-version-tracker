@@ -35,7 +35,7 @@ static int parse_log_target(const char* input, unsigned int* result_mask) {
     return 0;
 }
 
-static Command parse_capture_command(int option) {
+static ArgsCommand parse_capture_command(int option) {
     switch (option) {
         case 'd':
             return CmdCaptureDevice;
@@ -47,7 +47,7 @@ static Command parse_capture_command(int option) {
     }
 }
 
-static Command parse_miscellaneous_command(int option) {
+static ArgsCommand parse_miscellaneous_command(int option) {
     switch (option) {
         case 'h':
             return CmdHelp;
@@ -161,4 +161,18 @@ void args_print_help() {
 
 void args_print_version() {
     printf("ntp-version-tracker v0.1.0 | %s\n", cap_get_pcap_version());
+}
+
+const char* args_log_target_format(unsigned int log_target_mask) {
+    switch (log_target_mask) {
+        case LogFile:
+            return "file";
+        case LogConsole:
+            return "console";
+        case LogFile | LogConsole:
+            return "file & console";
+        default:
+            assert(0);
+            return NULL;
+    }
 }

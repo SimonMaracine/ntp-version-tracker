@@ -7,10 +7,10 @@ typedef enum {
     CmdCaptureFile,
     CmdHelp,
     CmdVersion
-} Command;
+} ArgsCommand;
 
 typedef struct {
-    Command command;
+    ArgsCommand command;
     const char* device_or_file;
     unsigned int log_target_mask;
     const char* log_file;
@@ -19,5 +19,6 @@ typedef struct {
 Args* args_parse_arguments(int argc, char** argv);
 void args_print_help();
 void args_print_version();
+const char* args_log_target_format(unsigned int log_target_mask);
 
 #endif

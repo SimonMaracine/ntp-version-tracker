@@ -4,15 +4,16 @@
 #include <sys/select.h>
 #include <time.h>
 #include <errno.h>
-#include <assert.h>
 
 #include "capture_session.h"
 #include "logging.h"
 
-// Flag indicating if to keep sniffing
+// Flag indicating if to keep capturing
 static volatile sig_atomic_t running = 1;
 
 static int set_options(pcap_t* handle) {
+    // These options for capturing devices are hardcoded for now
+
     if (pcap_set_snaplen(handle, 65535) == PCAP_ERROR_ACTIVATED) {
         log_print("Could not set snaplen\n");
         return -1;
@@ -39,7 +40,7 @@ static int set_options(pcap_t* handle) {
 static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     char err_msg[PCAP_ERRBUF_SIZE];
 
-    // Create a session for sniffing
+    // Create a session for capturing
     pcap_t* handle = NULL;
 
     switch (type) {
@@ -49,9 +50,6 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
         case CapFile:
             handle = pcap_open_offline(device_or_file, err_msg);
             break;
-        default:
-            assert(0);
-            break;
     }
 
     if (handle == NULL) {
@@ -60,7 +58,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     }
 
     if (type == CapFile) {
-        // Done with initialization
+        // Done with initialization for save file
         return handle;
     }
 
@@ -93,7 +91,7 @@ err_handle:
     return NULL;
 }
 
-static void packet_sniffed(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
+static void on_packet_captured(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
     (void) header;  // Ignore
 
     // https://en.wikipedia.org/wiki/Ethernet_frame
@@ -104,47 +102,10 @@ static void packet_sniffed(unsigned char* user, const struct pcap_pkthdr* header
     session->callback(ethernet_header, session->user_data);
 }
 
-// Call this every time sniffing begins
-static void reset_callback(CapSession* session, PacketCaped callback, void* user) {
-    session->callback = callback;
-    session->user_data = user;
-}
-
-int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type) {
-    // Argument device_or_file must be a literal string
-    // Logging must have been initialized already
-
-    char err_msg[PCAP_ERRBUF_SIZE];
-
-    if (pcap_init(PCAP_CHAR_ENC_UTF_8, err_msg) == PCAP_ERROR) {
-        log_print("Could not initialize pcap: %s\n", err_msg);
-        return -1;
-    }
-
-    // This function does all the cleaning, in case of error
-    pcap_t* handle = initialize_handle(device_or_file, type);
-
-    if (handle == NULL) {
-        return -1;
-    }
-
-    session->handle = handle;
-    session->device_or_file = device_or_file;
-
-    return 0;
-}
-
-void cap_uninitialize_session(CapSession* session) {
-    pcap_close(session->handle);
-}
-
 // https://www.tcpdump.org/manpages/libpcap-1.10.4/pcap_loop.3pcap.html
 
-// FIXME save files are captured differently (blocking mode)
-int cap_capture(CapSession* session, PacketCaped callback, void* user) {
-    reset_callback(session, callback, user);
-
-    log_print("STARTING sniffing on device `%s`\n", session->device_or_file);
+static int capture_device_loop(CapSession* session) {
+    log_print("STARTING capturing on device `%s`\n", session->device_or_file);
 
     char err_msg[PCAP_ERRBUF_SIZE];
 
@@ -194,20 +155,80 @@ int cap_capture(CapSession* session, PacketCaped callback, void* user) {
 
         // Check if there is anything to read
         if (FD_ISSET(fd, &files)) {
-            const int result = pcap_dispatch(session->handle, 0, packet_sniffed, (unsigned char*) session);
+            const int result = pcap_dispatch(session->handle, 0, on_packet_captured, (unsigned char*) session);
 
             if (result < 0) {
-                log_print("An error occurred sniffing packets\n");
+                log_print("An error occurred capturing packets\n");
                 continue;
             }
 
-            log_print("Sniffed %d packet(s)\n", result);
+            log_print("Captured %d packet(s)\n", result);
         }
     }
 
-    log_print("STOPPED sniffing on device `%s`\n", session->device_or_file);
+    log_print("STOPPED capturing on device `%s`\n", session->device_or_file);
 
     return 0;
+}
+
+static int capture_file_loop(CapSession* session) {
+    log_print("STARTING reading save file `%s`\n", session->device_or_file);
+
+    if (pcap_loop(session->handle, 0, on_packet_captured, (unsigned char*) session) < 0) {
+        log_print("An error occurred reading packets from save file `%s`\n", session->device_or_file);
+        return -1;
+    }
+
+    log_print("STOPPED reading save file `%s`\n", session->device_or_file);
+
+    return 0;
+}
+
+int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type) {
+    // Argument device_or_file must be a literal string
+    // Logging must have been initialized already
+
+    char err_msg[PCAP_ERRBUF_SIZE];
+
+    if (pcap_init(PCAP_CHAR_ENC_UTF_8, err_msg) == PCAP_ERROR) {
+        log_print("Could not initialize pcap: %s\n", err_msg);
+        return -1;
+    }
+
+    // This function does all the cleaning, in case of error
+    pcap_t* handle = initialize_handle(device_or_file, type);
+
+    if (handle == NULL) {
+        return -1;
+    }
+
+    session->handle = handle;
+    session->device_or_file = device_or_file;
+    session->type = type;
+
+    return 0;
+}
+
+void cap_uninitialize_session(CapSession* session) {
+    pcap_close(session->handle);
+}
+
+int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* user) {
+    session->callback = callback;
+    session->user_data = user;
+
+    int result = 0;
+
+    switch (session->type) {
+        case CapDevice:
+            result = capture_device_loop(session);
+            break;
+        case CapFile:
+            result = capture_file_loop(session);
+            break;
+    }
+
+    return result;
 }
 
 void cap_stop_signal() {

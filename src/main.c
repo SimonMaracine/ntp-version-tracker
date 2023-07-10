@@ -10,7 +10,8 @@
 #include "logging.h"
 #include "helpers.h"
 
-static void packet_sniffed(const struct ether_header* ethernet_header, void* user) {
+// User side callback for processing packets
+static void packet_captured(const struct ether_header* ethernet_header, void* user) {
     (void) user;
 
     // Print MACs as they come
@@ -30,13 +31,22 @@ static void interrupt_handler(int signal) {
     cap_stop_signal();
 }
 
-static int capture(const Args* args) {
+static void print_capture_status(const Args* args) {
     printf(
-        "device: %s, log_target: %u, log_file: %s\n",
+        "device: %s, log_target: %s",
         args->device_or_file,
-        args->log_target_mask,
-        args->log_file
+        args_log_target_format(args->log_target_mask)
     );
+
+    if (args->log_target_mask & LogFile) {
+        printf(", log_file: %s\n", args->log_file);
+    } else {
+        printf("\n");
+    }
+}
+
+static int capture(const Args* args) {
+    print_capture_status(args);
 
     if (set_interrupt_handler(interrupt_handler) < 0) {
         return 1;
@@ -54,7 +64,7 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    if (cap_capture(&session, packet_sniffed, NULL) < 0) {
+    if (cap_start_capture(&session, packet_captured, NULL) < 0) {
         cap_uninitialize_session(&session);
         return 1;
     }

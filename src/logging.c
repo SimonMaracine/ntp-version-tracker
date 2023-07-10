@@ -6,10 +6,10 @@
 
 #include "logging.h"
 
-// Logging is used everywhere, so use static memory
+// Logging could be used everywhere, so use static memory
 
 static unsigned int g_log_target_mask = 0;  // Mask 0 is invalid
-static FILE* g_log_file = NULL;  // TODO needs periodic flushing
+static FILE* g_log_file = NULL;  // Flushing is not controlled by this code
 
 static void get_current_time(char* out) {
     // Www Mmm dd hh:mm:ss yyyy\n => 25 + 1 bytes

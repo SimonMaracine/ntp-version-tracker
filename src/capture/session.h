@@ -5,9 +5,6 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 
-struct pcap;
-typedef struct pcap pcap_t;
-
 typedef void(*CapPacketCapturedEthernet)(const struct ether_header* header, void* user);
 typedef void(*CapPacketCapturedIpv4)(const struct ip* header, void* user);  // Without options
 typedef void(*CapPacketCapturedUdp)(const struct udphdr* header, void* user);
@@ -19,7 +16,7 @@ typedef enum {
 } CapType;
 
 typedef struct {
-    pcap_t* handle;
+    void* handle;  // pcap_t handle
     const char* device_or_file;
     CapType type;
 

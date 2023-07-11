@@ -31,11 +31,11 @@ static void packet_captured(const CapPacketHeaders* headers, unsigned int availa
 
     // log_print("IP proto %u\n", headers->ipv4_header->ip_p);
 
-    // if (headers->udp_header == NULL) {
-    //     return;
-    // }
+    if (headers->udp_header == NULL) {
+        return;
+    }
 
-    // log_print("UDP src %hu ----> dest %hu\n", headers->udp_header->source, headers->udp_header->dest);
+    log_print("UDP src %hu ----> dest %hu\n", headers->udp_header->source, headers->udp_header->dest);
 
     if (headers->ntp_header == NULL) {
         return;

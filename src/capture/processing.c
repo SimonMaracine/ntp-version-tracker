@@ -12,6 +12,7 @@
 // https://en.wikipedia.org/wiki/Internet_Protocol_version_4#Header
 // https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
 // https://en.wikipedia.org/wiki/User_Datagram_Protocol
+// https://en.wikipedia.org/wiki/Network_Time_Protocol
 // https://www.eecis.udel.edu/~mills/database/rfc/rfc1305/rfc1305c.pdf
 // http://what-when-how.com/computer-network-time-synchronization/ntp-packet-header-ntp-reference-implementation-computer-network-time-synchronization/
 
@@ -82,19 +83,18 @@ static const NtpHeader* check_ntp(const struct pcap_pkthdr* header, const unsign
         return NULL;
     }
 
-    return (const NtpHeader*) packet;
+    return (const NtpHeader*) (packet + *pointer);
 }
 
 void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
-    unsigned int pointer = 0;  // Incremented every time a header is processed
     CapSession* session = (CapSession*) user;
+    unsigned int pointer = 0;  // Incremented every time a header is processed
+    unsigned int available_mask = 0;
 
     const struct ether_header* ethernet_header = NULL;
     const struct ip* ip_header = NULL;
     const struct udphdr* udp_header = NULL;
     const NtpHeader* ntp_header = NULL;
-
-    unsigned int available_mask = 0;
 
     ethernet_header = check_ethernet(header, packet, &pointer);
 

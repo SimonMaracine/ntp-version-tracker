@@ -85,177 +85,68 @@ static const NtpHeader* check_ntp(const struct pcap_pkthdr* header, const unsign
     return (const NtpHeader*) packet;
 }
 
-static void handle_ether(const struct pcap_pkthdr* header, const unsigned char* packet,
-        unsigned int* pointer, CapSession* session) {
-    const struct ether_header* ethernet_header = check_ethernet(header, packet, pointer);
+void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
+    unsigned int pointer = 0;  // Incremented every time a header is processed
+    CapSession* session = (CapSession*) user;
+
+    const struct ether_header* ethernet_header = NULL;
+    const struct ip* ip_header = NULL;
+    const struct udphdr* udp_header = NULL;
+    const NtpHeader* ntp_header = NULL;
+
+    unsigned int available_mask = 0;
+
+    ethernet_header = check_ethernet(header, packet, &pointer);
 
     if (ethernet_header == NULL) {
         log_print("(No Ethernet header)\n");
-        return;
+        goto stop_and_call;
     }
 
-    if (session->callback_ethernet != NULL) {
-        session->callback_ethernet(ethernet_header, session->user_data);
-    }
-}
+    available_mask |= CapAvailableEthernet;
 
-static void handle_ipv4(const struct pcap_pkthdr* header, const unsigned char* packet,
-        unsigned int* pointer, CapSession* session) {
-    const struct ip* ip_header = check_ipv4(header, packet, pointer);
+    ip_header = check_ipv4(header, packet, &pointer);
 
     if (ip_header == NULL) {
         log_print("(No IPv4 header)\n");
-        return;
+        goto stop_and_call;
     }
 
-    if (session->callback_ipv4 != NULL) {
-        session->callback_ipv4(ip_header, session->user_data);
-    }
-}
+    available_mask |= CapAvailableIpv4;
 
-static void handle_ipv4(const struct pcap_pkthdr* header, const unsigned char* packet,
-        unsigned int* pointer, CapSession* session) {
-    const struct ip* ip_header = check_ipv4(header, packet, pointer);
-
-    if (ip_header == NULL) {
-        log_print("(No IPv4 header)\n");
-        return;
-    }
-
-    if (session->callback_ipv4 != NULL) {
-        session->callback_ipv4(ip_header, session->user_data);
-    }
-}
-
-static void handle_udp(const struct pcap_pkthdr* header, const unsigned char* packet,
-        unsigned int* pointer, CapSession* session) {
     if (ip_header->ip_p != 17) {
         log_print("(No UDP header)\n");
-        return;
+        goto stop_and_call;
     }
 
-    const struct udphdr* udp_header = check_udp(header, packet, pointer);
+    udp_header = check_udp(header, packet, &pointer);
 
     if (udp_header == NULL) {
         log_print("(No UDP header)\n");
-        return;
+        goto stop_and_call;
     }
 
-    if (session->callback_udp != NULL) {
-        session->callback_udp(udp_header, session->user_data);
-    }
-}
+    available_mask |= CapAvailableUdp;
 
-static void handle_ntp(const struct pcap_pkthdr* header, const unsigned char* packet,
-        unsigned int* pointer, CapSession* session) {
     if (udp_header->source != 123 && udp_header->dest != 123) {
         log_print("(No NTP header)\n");
-        return;
+        goto stop_and_call;
     }
 
-    const NtpHeader* ntp_header = check_ntp(header, packet, pointer);
+    ntp_header = check_ntp(header, packet, &pointer);
 
     if (ntp_header == NULL) {
         log_print("(No NTP header)\n");
-        return;
+        goto stop_and_call;
     }
 
-    if (session->callback_ntp != NULL) {
-        session->callback_ntp(ntp_header, session->user_data);
-    }
+    available_mask |= CapAvailableNtp;
+
+stop_and_call:
+    session->headers.ethernet_header = ethernet_header;
+    session->headers.ipv4_header = ip_header;
+    session->headers.udp_header = udp_header;
+    session->headers.ntp_header = ntp_header;
+
+    session->callback(&session->headers, available_mask, session->user_data);
 }
-
-// The pointer is incremented every time a header is processed
-
-void process_ether(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
-    unsigned int pointer = 0;
-    CapSession* session = (CapSession*) user;
-
-    handle_ether(header, packet, &pointer, session);
-}
-
-void process_ether_ipv4(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
-    unsigned int pointer = 0;
-    CapSession* session = (CapSession*) user;
-
-    handle_ether(header, packet, &pointer, session);
-    handle_ipv4(header, packet, &pointer, session);
-}
-
-void process_ether_ipv4_udp(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
-    unsigned int pointer = 0;
-    CapSession* session = (CapSession*) user;
-
-    handle_ether(header, packet, &pointer, session);
-    handle_ipv4(header, packet, &pointer, session);
-    handle_udp(header, packet, &pointer, session);
-}
-
-void process_ether_ipv4_udp_ntp(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
-    unsigned int pointer = 0;
-    CapSession* session = (CapSession*) user;
-
-    handle_ether(header, packet, &pointer, session);
-    handle_ipv4(header, packet, &pointer, session);
-    handle_udp(header, packet, &pointer, session);
-    handle_ntp(header, packet, &pointer, session);
-}
-
-// void captured_packet(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
-//     unsigned int pointer = 0;  // Incremented every time a header is processed
-//     CapSession* session = (CapSession*) user;
-
-//     const struct ether_header* ethernet_header = process_ethernet(header, packet, &pointer);
-
-//     if (ethernet_header == NULL) {
-//         log_print("(No Ethernet header)\n");
-//         return;
-//     }
-
-//     if (session->callback_ethernet != NULL) {
-//         session->callback_ethernet(ethernet_header, session->user_data);
-//     }
-
-//     const struct ip* ip_header = process_ipv4(header, packet, &pointer);
-
-//     if (ip_header == NULL) {
-//         log_print("(No IPv4 header)\n");
-//         return;
-//     }
-
-//     if (session->callback_ipv4 != NULL) {
-//         session->callback_ipv4(ip_header, session->user_data);
-//     }
-
-//     if (ip_header->ip_p != 17) {
-//         log_print("(No UDP header)\n");
-//         return;
-//     }
-
-//     const struct udphdr* udp_header = process_udp(header, packet, &pointer);
-
-//     if (udp_header == NULL) {
-//         log_print("(No UDP header)\n");
-//         return;
-//     }
-
-//     if (session->callback_udp != NULL) {
-//         session->callback_udp(udp_header, session->user_data);
-//     }
-
-//     if (udp_header->source != 123 && udp_header->dest != 123) {
-//         log_print("(No NTP header)\n");
-//         return;
-//     }
-
-//     const NtpHeader* ntp_header = process_ntp(header, packet, &pointer);
-
-//     if (ntp_header == NULL) {
-//         log_print("(No NTP header)\n");
-//         return;
-//     }
-
-//     if (session->callback_ntp != NULL) {
-//         session->callback_ntp(ntp_header, session->user_data);
-//     }
-// }

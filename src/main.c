@@ -10,37 +10,40 @@
 #include "logging.h"
 #include "helpers.h"
 
-// User side callbacks for processing packets
-static void packet_captured_ether(const struct ether_header* header, void* user) {
+// User side callback for processing packets
+static void packet_captured(const CapPacketHeaders* headers, unsigned int available, void* user) {
     (void) user;
+    (void) available;
 
-    // Print MACs as they come
-    char source[18];
-    char destination[18];
-    formatted_mac(header->ether_shost, source);
-    formatted_mac(header->ether_dhost, destination);
+    // if (headers->ethernet_header == NULL) {
+    //     return;
+    // }
 
-    log_print("S %s --- D %s (T %hu)\n", source, destination, header->ether_type);
+    // char source[18];
+    // char destination[18];
+    // formatted_mac(headers->ethernet_header->ether_shost, source);
+    // formatted_mac(headers->ethernet_header->ether_dhost, destination);
+    // log_print("S %s --- D %s (T %hu)\n", source, destination, headers->ethernet_header->ether_type);
+
+    // if (headers->ipv4_header == NULL) {
+    //     return;
+    // }
+
+    // log_print("IP proto %u\n", headers->ipv4_header->ip_p);
+
+    // if (headers->udp_header == NULL) {
+    //     return;
+    // }
+
+    // log_print("UDP src %hu ----> dest %hu\n", headers->udp_header->source, headers->udp_header->dest);
+
+    if (headers->ntp_header == NULL) {
+        return;
+    }
+
+    log_print("NTP version %lu\n", headers->ntp_header->li_vn_mode & 0x38);
 
     // Can do other stuff
-}
-
-static void packet_captured_ipv4(const struct ip* header, void* user) {
-    (void) user;
-
-    log_print("IP proto %u\n", header->ip_p);
-}
-
-static void packet_captured_udp(const struct udphdr* header, void* user) {
-    (void) user;
-
-    log_print("UDP src %hu ----> dest %hu\n", header->source, header->dest);
-}
-
-static void packet_captured_ntp(const NtpHeader* header, void* user) {
-    (void) user;
-
-    log_print("NTP version %lu\n", header->li_vn_mode & 0x38);
 }
 
 static void interrupt_handler(int signal) {
@@ -82,12 +85,7 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    cap_want_ethernet(&session, packet_captured_ether);
-    cap_want_ipv4(&session, packet_captured_ipv4);
-    cap_want_udp(&session, packet_captured_udp);
-    cap_want_ntp(&session, packet_captured_ntp);
-
-    if (cap_start_capture(&session, NULL) < 0) {
+    if (cap_start_capture(&session, packet_captured, NULL) < 0) {
         cap_uninitialize_session(&session);
         return 1;
     }

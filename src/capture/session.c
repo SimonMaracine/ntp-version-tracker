@@ -145,9 +145,7 @@ static int capture_device_loop(CapSession* session) {
 
         // Check if there is anything to read
         if (FD_ISSET(fd, &files)) {
-            const int result = pcap_dispatch(
-                session->handle, 0, captured_packet, (unsigned char*) session
-            );
+            const int result = pcap_dispatch(session->handle, 0, process_packet, (unsigned char*) session);
 
             if (result < 0) {
                 log_print("An error occurred capturing packets\n");
@@ -166,7 +164,7 @@ static int capture_device_loop(CapSession* session) {
 static int capture_file_loop(CapSession* session) {
     log_print("STARTING reading save file `%s`\n", session->device_or_file);
 
-    if (pcap_loop(session->handle, 0, captured_packet, (unsigned char*) session) < 0) {
+    if (pcap_loop(session->handle, 0, process_packet, (unsigned char*) session) < 0) {
         log_print("An error occurred reading packets from save file `%s`\n", session->device_or_file);
         return -1;
     }
@@ -205,23 +203,8 @@ void cap_uninitialize_session(CapSession* session) {
     pcap_close(session->handle);
 }
 
-void cap_want_ethernet(CapSession* session, CapPacketCapturedEthernet callback) {
-    session->callback_ethernet = callback;
-}
-
-void cap_want_ipv4(CapSession* session, CapPacketCapturedIpv4 callback) {
-    session->callback_ipv4 = callback;
-}
-
-void cap_want_udp(CapSession* session, CapPacketCapturedUdp callback) {
-    session->callback_udp = callback;
-}
-
-void cap_want_ntp(CapSession* session, CapPacketCapturedNtp callback) {
-    session->callback_ntp = callback;
-}
-
-int cap_start_capture(CapSession* session, void* user) {
+int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* user) {
+    session->callback = callback;
     session->user_data = user;
 
     int result = 0;

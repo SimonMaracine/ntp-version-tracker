@@ -10,7 +10,7 @@
 #include "logging.h"
 #include "helpers.h"
 
-// User side callback for processing packets
+// User side callbacks for processing packets
 static void packet_captured_ether(const struct ether_header* header, void* user) {
     (void) user;
 
@@ -23,6 +23,24 @@ static void packet_captured_ether(const struct ether_header* header, void* user)
     log_print("S %s --- D %s (T %hu)\n", source, destination, header->ether_type);
 
     // Can do other stuff
+}
+
+static void packet_captured_ipv4(const struct ip* header, void* user) {
+    (void) user;
+
+    // log_print("IP proto %u\n", header->ip_p);
+}
+
+static void packet_captured_udp(const struct udphdr* header, void* user) {
+    (void) user;
+
+    // log_print("UDP src %hu ----> dest %hu\n", header->source, header->dest);
+}
+
+static void packet_captured_ntp(const NtpHeader* header, void* user) {
+    (void) user;
+
+    log_print("NTP version %lu\n", header->li_vn_mode & 0x38);
 }
 
 static void interrupt_handler(int signal) {
@@ -65,6 +83,9 @@ static int capture(const Args* args) {
     }
 
     cap_want_ethernet(&session, packet_captured_ether);
+    cap_want_ipv4(&session, packet_captured_ipv4);
+    cap_want_udp(&session, packet_captured_udp);
+    cap_want_ntp(&session, packet_captured_ntp);
 
     if (cap_start_capture(&session, NULL) < 0) {
         cap_uninitialize_session(&session);

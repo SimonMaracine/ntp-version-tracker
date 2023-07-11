@@ -88,6 +88,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
 
 err_handle:
     pcap_close(handle);
+
     return NULL;
 }
 
@@ -153,7 +154,7 @@ static int capture_device_loop(CapSession* session) {
                 continue;
             }
 
-            log_print("Captured %d packet(s)\n", result);
+            log_print("%d packet(s) captured\n", result);
         }
     }
 
@@ -214,6 +215,10 @@ void cap_want_ipv4(CapSession* session, CapPacketCapturedIpv4 callback) {
 
 void cap_want_udp(CapSession* session, CapPacketCapturedUdp callback) {
     session->callback_udp = callback;
+}
+
+void cap_want_ntp(CapSession* session, CapPacketCapturedNtp callback) {
+    session->callback_ntp = callback;
 }
 
 int cap_start_capture(CapSession* session, void* user) {

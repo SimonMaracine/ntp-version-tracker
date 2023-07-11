@@ -97,7 +97,7 @@ void captured_packet(unsigned char* user, const struct pcap_pkthdr* header, cons
         session->callback_ipv4(ip_header, session->user_data);
     }
 
-    if (ip_header->ip_p != 17) {  // TODO
+    if (ip_header->ip_p != 17) {
         log_print("No UDP header\n");
         return;
     }

@@ -8,7 +8,14 @@
 typedef void(*CapPacketCapturedEthernet)(const struct ether_header* header, void* user);
 typedef void(*CapPacketCapturedIpv4)(const struct ip* header, void* user);  // Without options
 typedef void(*CapPacketCapturedUdp)(const struct udphdr* header, void* user);
-// typedef void(*CapPacketCapturedNtp)(const void* header, void* user);
+typedef void(*CapPacketCapturedNtp)(const void* header, void* user);
+
+typedef enum {
+    CapEthernet = 1 << 0,
+    CapIpv4 = 1 << 1,
+    CapUdp = 1 << 2,
+    CapNtp = 1 << 3,
+} CapProtocol;
 
 typedef enum {
     CapDevice,
@@ -23,7 +30,9 @@ typedef struct {
     CapPacketCapturedEthernet callback_ethernet;
     CapPacketCapturedIpv4 callback_ipv4;
     CapPacketCapturedUdp callback_udp;
+    CapPacketCapturedNtp callback_ntp;
     void* user_data;
+    unsigned int want_protocol;
     // TODO bitmask with what the user wants
 } CapSession;
 
@@ -33,7 +42,7 @@ void cap_uninitialize_session(CapSession* session);
 void cap_want_ethernet(CapSession* session, CapPacketCapturedEthernet callback);
 void cap_want_ipv4(CapSession* session, CapPacketCapturedIpv4 callback);
 void cap_want_udp(CapSession* session, CapPacketCapturedUdp callback);
-// void cap_want_ntp(CapSession* session, CapPacketCapturedNtp callback);
+void cap_want_ntp(CapSession* session, CapPacketCapturedNtp callback);
 
 int cap_start_capture(CapSession* session, void* user);
 

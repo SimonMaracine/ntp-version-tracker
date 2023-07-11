@@ -88,6 +88,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
 
 err_handle:
     pcap_close(handle);
+
     return NULL;
 }
 
@@ -206,14 +207,22 @@ void cap_uninitialize_session(CapSession* session) {
 
 void cap_want_ethernet(CapSession* session, CapPacketCapturedEthernet callback) {
     session->callback_ethernet = callback;
+    session->want_protocol |= CapEthernet;
 }
 
 void cap_want_ipv4(CapSession* session, CapPacketCapturedIpv4 callback) {
     session->callback_ipv4 = callback;
+    session->want_protocol |= CapIpv4;
 }
 
 void cap_want_udp(CapSession* session, CapPacketCapturedUdp callback) {
     session->callback_udp = callback;
+    session->want_protocol |= CapUdp;
+}
+
+void cap_want_ntp(CapSession* session, CapPacketCapturedNtp callback) {
+    session->callback_ntp = callback;
+    session->want_protocol |= CapNtp;
 }
 
 int cap_start_capture(CapSession* session, void* user) {

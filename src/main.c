@@ -5,19 +5,19 @@
 #include <stdio.h>
 #include <assert.h>
 
+
 #include "capture/session.h"
 #include "args.h"
 #include "logging.h"
 #include "helpers.h"
 
 // User side callback for processing packets
-static void packet_captured(const CapPacketHeaders* headers, unsigned int available, void* user) {
+static void packet_captured(const CapPacketHeaders* headers, void* user) {
     (void) user;
-    (void) available;
 
-    // if (headers->ethernet_header == NULL) {
-    //     return;
-    // }
+    if (headers->ethernet_header == NULL) {
+        return;
+    }
 
     // char source[18];
     // char destination[18];
@@ -25,23 +25,29 @@ static void packet_captured(const CapPacketHeaders* headers, unsigned int availa
     // formatted_mac(headers->ethernet_header->ether_dhost, destination);
     // log_print("S %s --- D %s (T %hu)\n", source, destination, headers->ethernet_header->ether_type);
 
-    // if (headers->ipv4_header == NULL) {
-    //     return;
-    // }
+    if (headers->ipv4_header == NULL) {
+        return;
+    }
 
     // log_print("IP proto %u\n", headers->ipv4_header->ip_p);
+
+    // char source[16];
+    // char destination[16];
+    // formatted_ip(&headers->ipv4_header->ip_src, source);
+    // formatted_ip(&headers->ipv4_header->ip_dst, destination);
+    // log_print("IP src %s --- dest %s\n", source, destination);
 
     if (headers->udp_header == NULL) {
         return;
     }
 
-    log_print("UDP src %hu ----> dest %hu\n", headers->udp_header->source, headers->udp_header->dest);
+    // log_print("UDP src %hu ----> dest %hu\n", headers->udp_header->source, headers->udp_header->dest);
 
     if (headers->ntp_header == NULL) {
         return;
     }
 
-    log_print("NTP version %lu\n", headers->ntp_header->li_vn_mode & 0x38);
+    log_print("NTP version %u\n", (headers->ntp_header->li_vn_mode & 0x38) >> 3);
 
     // Can do other stuff
 }
@@ -84,6 +90,8 @@ static int capture(const Args* args) {
     if (cap_initialize_session(&session, args->device_or_file, type) < 0) {
         return 1;
     }
+
+    session.verbose = false;  // TODO
 
     if (cap_start_capture(&session, packet_captured, NULL) < 0) {
         cap_uninitialize_session(&session);

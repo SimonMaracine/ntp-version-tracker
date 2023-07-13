@@ -210,7 +210,7 @@ void args_print_help() {
         "defaults:\n"
         "    log_target = c\n"
         "    max_bytes = 8388608 (8 MiB)\n"
-        "    log_file = capture.log\n"
+        "    log_file = ./capture.log\n"
         "\n"
         "example:\n"
         "    ntp_version_tracker -d wlo1 -t cf -m 16777216 -l ~/capture.log -F 'udp port 123'\n"

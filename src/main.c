@@ -91,7 +91,7 @@ static int capture(const Args* args) {
 
     const CapType type = args->command == CmdCaptureDevice ? CapDevice : CapFile;
 
-    if (cap_initialize_session(&session, args->device_or_file, type, args->verbose) < 0) {
+    if (cap_initialize_session(&session, args->device_or_file, type, args->filter, args->verbose) < 0) {
         return 1;
     }
 

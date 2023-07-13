@@ -90,6 +90,7 @@ Args* args_parse_arguments(int argc, char** argv) {
     args.log_target_mask = LogConsole;
     args.max_bytes = 8388608;
     args.log_file = "capture.log";
+    args.filter = NULL;
     args.verbose = false;
 
     // Don't print error messages from the library
@@ -97,7 +98,7 @@ Args* args_parse_arguments(int argc, char** argv) {
 
     int c = 0;
 
-    while ((c = getopt(argc, argv, "d:f:t:m:l:Vhv")) != -1) {
+    while ((c = getopt(argc, argv, "d:f:t:m:l:F:Vhv")) != -1) {
         switch (c) {
             case 'd':
             case 'f':
@@ -128,6 +129,10 @@ Args* args_parse_arguments(int argc, char** argv) {
                 args.log_file = optarg;
 
                 break;
+            case 'F':
+                args.filter = optarg;
+
+                break;
             case 'V':
                 args.verbose = true;
 
@@ -149,6 +154,7 @@ Args* args_parse_arguments(int argc, char** argv) {
                     case 't':
                     case 'm':
                     case 'l':
+                    case 'F':
                         printf("Option -%c requires an argument\n", optopt);
                         break;
                     default:
@@ -183,24 +189,35 @@ Args* args_parse_arguments(int argc, char** argv) {
 void args_print_help() {
     printf(
         "usage:\n"
-        "    ntp_version_tracker -d <device> [ -t <log_target> -m <max_bytes> -l <log_file> -V ]\n"
-        "    ntp_version_tracker -f <file> [ -t <log_target> -m <max_bytes> -l <log_file> -V ]\n"
+        "    ntp_version_tracker -d <device> [OPTIONS...]\n"
+        "    ntp_version_tracker -f <file> [OPTIONS...]\n"
         "\n"
         "commands:\n"
-        "    -d Capture a device\n"
-        "    -f Capture a save file\n"
-        "    -t Set the log target (optional)\n"
-        "       Possible values are [cCfF]+\n"
-        "    -m Set a soft limit of bytes logged (optional)\n"
-        "    -l Set the log file path, if even used (optional)\n"
-        "    -V Print additional information (optional)\n"
-        "    -h Display this help\n"
-        "    -v Show version\n"
+        "    -d  Capture a device\n"
+        "    -f  Read a save file\n"
+        "    -h  Display this help\n"
+        "    -v  Show version\n"
+        "\n"
+        "options:\n"
+        "    -t  Set the log target (optional)\n"
+        "        Possible values are [cCfF]+\n"
+        "    -m  Set a soft limit of bytes logged (optional)\n"
+        "    -l  Set the log file path, if even used (optional)\n"
+        "    -F  Set the filter string (optional)\n"
+        "        Possible values can be found in `man pcap-filter`\n"
+        "    -V  Print additional information (optional)\n"
         "\n"
         "defaults:\n"
         "    log_target = c\n"
         "    max_bytes = 8388608 (8 MiB)\n"
         "    log_file = capture.log\n"
+        "\n"
+        "example:\n"
+        "    ntp_version_tracker -d wlo1 -t cf -m 16777216 -l ~/capture.log\n"
+        "\n"
+        "    This captures packets on device `wlo1` and writes log messages in both the console and\n"
+        "    the specified file. It automatically closes when 16 MiB have been written to logs.\n"
+        "    No filters are applied and no verbose information is logged.\n"
     );
 }
 

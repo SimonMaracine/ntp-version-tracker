@@ -69,7 +69,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     }
 
     if (set_options(handle) < 0) {
-        goto err_handle;
+        return NULL;
     }
 
     // After all options, activate the handle
@@ -79,7 +79,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
         log_print("Warning on activating device `%s`: %d\n", device_or_file, result);
     } if (result < 0) {
         log_print("An error occurred activating device `%s`: %d\n", device_or_file, result);
-        goto err_handle;
+        return NULL;
     }
 
     // Then check the type of data-link headers
@@ -87,15 +87,38 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
 
     if (headers_type != DLT_EN10MB) {
         log_print("Device `%s` does not provide Ethernet headers\n", device_or_file);
-        goto err_handle;
+        return NULL;
     }
 
     return handle;
+}
 
-err_handle:
-    pcap_close(handle);
+static int apply_filter(pcap_t* handle, const char* filter) {
+    // char err_msg[PCAP_ERRBUF_SIZE];
 
-    return NULL;
+    // unsigned int mask = 0;
+    // unsigned int net = 0;
+
+    // if (pcap_lookupnet(session->device_or_file, &net, &mask, err_msg) < 0) {
+    //     log_print("Could not get netmask for device `%s`\n", session->device_or_file);
+    //     return -1;
+    // }
+
+    struct bpf_program filter_program = {0};
+
+    if (pcap_compile(handle, &filter_program, filter, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
+        log_print("Could not compile filter program `%s`: %s\n", filter, pcap_geterr(handle));
+        return -1;
+    }
+
+    if (pcap_setfilter(handle, &filter_program) == PCAP_ERROR) {
+        log_print("Could not set filter program `%s` on handle: %s\n", filter, pcap_geterr(handle));
+        return -1;
+    }
+
+    pcap_freecode(&filter_program);
+
+    return 0;
 }
 
 static int set_non_blocking(CapSession* session, int* fd, struct timespec* ts, sigset_t* empty_set) {
@@ -197,7 +220,8 @@ static int loop_capture_file(CapSession* session) {
     return 0;
 }
 
-int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type, bool verbose) {
+int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type,
+        const char* filter, bool verbose) {
     // Argument device_or_file must be a literal string
     // Logging must have been initialized already
 
@@ -208,11 +232,17 @@ int cap_initialize_session(CapSession* session, const char* device_or_file, CapT
         return -1;
     }
 
-    // This function does all the cleaning, in case of error
     pcap_t* handle = initialize_handle(device_or_file, type);
 
     if (handle == NULL) {
-        return -1;
+        goto err_handle;
+    }
+
+    // Apply filters, if available
+    if (filter != NULL) {
+        if (apply_filter(handle, filter) < 0) {
+            goto err_handle;
+        }
     }
 
     session->handle = handle;
@@ -223,6 +253,11 @@ int cap_initialize_session(CapSession* session, const char* device_or_file, CapT
     g_session = session;
 
     return 0;
+
+err_handle:
+    pcap_close(handle);
+
+    return -1;
 }
 
 void cap_uninitialize_session(CapSession* session) {

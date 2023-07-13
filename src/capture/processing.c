@@ -87,18 +87,15 @@ static const NtpHeader* check_ntp(const struct pcap_pkthdr* header, const unsign
     return (const NtpHeader*) (packet + *pointer);
 }
 
-static int get_ethernet_type(const struct ether_header* ethernet_header, const unsigned char* packet,
-        unsigned int pointer, uint16_t* ethernet_type) {
-    if (ntohs(ethernet_header->ether_type) >= 1536) {  // Ethernet II
-        *ethernet_type = ntohs(ethernet_header->ether_type);
-    } else if (ntohs(ethernet_header->ether_type) <= 1500) {  // Ethernet 802.3
-        // const uint16_t* type = (const uint16_t*) (packet + pointer + 6);  // FIXME
-        // *ethernet_type = ntohs(*type);
-        (void) packet;
-        (void) pointer;
+static int get_ethernet_type(const struct ether_header* ethernet_header, uint16_t* ethernet_type) {
+    const uint16_t type = ntohs(ethernet_header->ether_type);
+
+    if (type >= 1536) {  // Ethernet II
+        *ethernet_type = type;
+    } else if (type <= 1500) {  // Ethernet 802.3
         *ethernet_type = 0;
         return -1;
-    } else {
+    } else {  // Invalid
         return -1;
     }
 
@@ -119,8 +116,8 @@ void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const
     }
 
     uint16_t ethernet_type = 0;
-    if (get_ethernet_type(session->headers.ethernet_header, packet, pointer, &ethernet_type) < 0) {
-        LOG_IF_VERBOSE log_print("(No Ethernet; it is 802.3)\n");  // FIXME
+    if (get_ethernet_type(session->headers.ethernet_header, &ethernet_type) < 0) {
+        LOG_IF_VERBOSE log_print("(No Ethernet II\n");
         session->headers.ethernet_header = NULL;
         goto stop_and_call;
     }

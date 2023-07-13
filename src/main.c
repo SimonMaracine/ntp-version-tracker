@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-
 #include "capture/session.h"
 #include "args.h"
 #include "logging.h"

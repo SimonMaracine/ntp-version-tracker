@@ -70,7 +70,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     }
 
     if (set_options(handle) < 0) {
-        return NULL;
+        goto err_handle;
     }
 
     // After all options, activate the handle
@@ -80,7 +80,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
         printf("Warning on activating device `%s`: %d\n", device_or_file, result);
     } if (result < 0) {
         printf("An error occurred activating device `%s`: %d\n", device_or_file, result);
-        return NULL;
+        goto err_handle;
     }
 
     // Then check the type of data-link headers
@@ -88,10 +88,15 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
 
     if (headers_type != DLT_EN10MB) {
         printf("Device `%s` does not provide Ethernet headers\n", device_or_file);
-        return NULL;
+        goto err_handle;
     }
 
     return handle;
+
+err_handle:
+    pcap_close(handle);
+
+    return NULL;
 }
 
 static int apply_filter(pcap_t* handle, const char* filter) {
@@ -226,13 +231,15 @@ int cap_initialize_session(CapSession* session, const char* device_or_file, CapT
     pcap_t* handle = initialize_handle(device_or_file, type);
 
     if (handle == NULL) {
-        goto err_handle;
+        // Handle has been already closed
+        return -1;
     }
 
     // Apply filters, if available
     if (filter != NULL) {
         if (apply_filter(handle, filter) < 0) {
-            goto err_handle;
+            pcap_close(handle);
+            return -1;
         }
     }
 
@@ -244,11 +251,6 @@ int cap_initialize_session(CapSession* session, const char* device_or_file, CapT
     g_session = session;
 
     return 0;
-
-err_handle:
-    pcap_close(handle);
-
-    return -1;
 }
 
 void cap_uninitialize_session(CapSession* session) {

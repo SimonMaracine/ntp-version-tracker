@@ -213,11 +213,11 @@ void args_print_help() {
         "    log_file = capture.log\n"
         "\n"
         "example:\n"
-        "    ntp_version_tracker -d wlo1 -t cf -m 16777216 -l ~/capture.log\n"
+        "    ntp_version_tracker -d wlo1 -t cf -m 16777216 -l ~/capture.log -F 'udp port 123'\n"
         "\n"
         "    This captures packets on device `wlo1` and writes log messages in both the console and\n"
         "    the specified file. It automatically closes when 16 MiB have been written to logs.\n"
-        "    No filters are applied and no verbose information is logged.\n"
+        "    It filters any packets that are not NTP. No verbose information is logged.\n"
     );
 }
 

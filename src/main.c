@@ -18,11 +18,13 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         return;
     }
 
-    // char source[18];
-    // char destination[18];
-    // formatted_mac(headers->ethernet_header->ether_shost, source);
-    // formatted_mac(headers->ethernet_header->ether_dhost, destination);
-    // log_print("S %s --- D %s (T %hu)\n", source, destination, headers->ethernet_header->ether_type);
+    {
+        char source[18];
+        char destination[18];
+        formatted_mac(headers->ethernet_header->ether_shost, source);
+        formatted_mac(headers->ethernet_header->ether_dhost, destination);
+        log_print("S %s --- D %s (T %hu)\n", source, destination, headers->ethernet_header->ether_type);
+    }
 
     if (headers->ipv4_header == NULL) {
         return;
@@ -30,17 +32,23 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
 
     log_print("IP proto %u\n", headers->ipv4_header->ip_p);
 
-    // char source[16];
-    // char destination[16];
-    // formatted_ip(&headers->ipv4_header->ip_src, source);
-    // formatted_ip(&headers->ipv4_header->ip_dst, destination);
-    // log_print("IP src %s --- dest %s\n", source, destination);
+    {
+        char source[16];
+        char destination[16];
+        formatted_ip(&headers->ipv4_header->ip_src, source);
+        formatted_ip(&headers->ipv4_header->ip_dst, destination);
+        log_print("IP src %s --- dest %s\n", source, destination);
+    }
 
     if (headers->udp_header == NULL) {
         return;
     }
 
-    // log_print("UDP src %hu ----> dest %hu\n", headers->udp_header->source, headers->udp_header->dest);
+    log_print(
+        "UDP src %hu ----> dest %hu\n",
+        ntohs(headers->udp_header->source),
+        ntohs(headers->udp_header->dest)
+    );
 
     if (headers->ntp_header == NULL) {
         return;

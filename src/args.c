@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "args.h"
 #include "logging.h"
@@ -31,6 +32,28 @@ static int parse_log_target(const char* input, unsigned int* result_mask) {
 
         index++;
     }
+
+    return 0;
+}
+
+// https://www.gnu.org/software/libc/manual/html_node/Parsing-of-Integers.html
+
+static int parse_max_bytes(const char* input, unsigned long* result_max_bytes) {
+    errno = 0;
+
+    char* end = NULL;
+
+    const unsigned long result = strtoul(input, &end, 10);
+
+    if (errno) {
+        return -1;
+    }
+
+    if ((result == 0 && end == input) || *end != '\0') {
+        return -1;
+    }
+
+    *result_max_bytes = result;
 
     return 0;
 }
@@ -64,6 +87,7 @@ Args* args_parse_arguments(int argc, char** argv) {
 
     // Default arguments
     args.log_target_mask = LogConsole;
+    args.max_bytes = 8388608;
     args.log_file = "capture.log";
 
     // Don't print error messages from the library
@@ -71,7 +95,7 @@ Args* args_parse_arguments(int argc, char** argv) {
 
     int c = 0;
 
-    while ((c = getopt(argc, argv, "d:f:t:l:hv")) != -1) {
+    while ((c = getopt(argc, argv, "d:f:t:m:l:hv")) != -1) {
         switch (c) {
             case 'd':
             case 'f':
@@ -87,6 +111,13 @@ Args* args_parse_arguments(int argc, char** argv) {
             case 't':
                 if (parse_log_target(optarg, &args.log_target_mask) < 0) {
                     printf("Invalid log target\n");
+                    return NULL;
+                }
+
+                break;
+            case 'm':
+                if (parse_max_bytes(optarg, &args.max_bytes) < 0) {
+                    printf("Invalid max bytes\n");
                     return NULL;
                 }
 
@@ -110,6 +141,7 @@ Args* args_parse_arguments(int argc, char** argv) {
                     case 'd':
                     case 'f':
                     case 't':
+                    case 'm':
                     case 'l':
                         printf("Option -%c requires an argument\n", optopt);
                         break;
@@ -145,17 +177,23 @@ Args* args_parse_arguments(int argc, char** argv) {
 void args_print_help() {
     printf(
         "usage:\n"
-        "    ntp_version_tracker -d <device> [-t <log_target> -l <log_file>]\n"
-        "    ntp_version_tracker -f <file> [-t <log_target> -l <log_file>]\n"
+        "    ntp_version_tracker -d <device> [ -t <log_target> -m <max_bytes> -l <log_file> ]\n"
+        "    ntp_version_tracker -f <file> [ -t <log_target> -m <max_bytes> -l <log_file> ]\n"
         "\n"
         "commands:\n"
         "    -d Capture a device\n"
         "    -f Capture a save file\n"
         "    -t Set the log target (optional)\n"
         "       Possible values are [cCfF]+\n"
+        "    -m Set a soft limit of bytes logged (optional)\n"
         "    -l Set the log file path, if even used (optional)\n"
         "    -h Display this help\n"
         "    -v Show version\n"
+        "\n"
+        "defaults:\n"
+        "    log_target = c\n"
+        "    max_bytes = 8388608 (8 MiB)\n"
+        "    log_file = capture.log\n"
     );
 }
 

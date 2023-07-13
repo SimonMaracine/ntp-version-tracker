@@ -60,9 +60,10 @@ static void interrupt_handler(int signal) {
 
 static void print_capture_status(const Args* args) {
     printf(
-        "device: %s, log_target: %s",
+        "device: %s, log_target: %s, max_bytes: %lu",
         args->device_or_file,
-        args_log_target_format(args->log_target_mask)
+        args_log_target_format(args->log_target_mask),
+        args->max_bytes
     );
 
     if (args->log_target_mask & LogFile) {
@@ -79,7 +80,7 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    if (log_initialize(args->log_file, args->log_target_mask) < 0) {
+    if (log_initialize(args->log_file, args->log_target_mask, args->max_bytes) < 0) {
         return 1;
     }
 
@@ -91,7 +92,7 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    session.verbose = false;  // TODO
+    session.verbose = true;  // TODO
 
     if (cap_start_capture(&session, packet_captured, NULL) < 0) {
         cap_uninitialize_session(&session);

@@ -3,13 +3,18 @@
 #include <sys/select.h>
 #include <time.h>
 #include <errno.h>
+#include <string.h>
+#include <assert.h>
 
 #include "session.h"
 #include "processing.h"
 #include "../logging.h"
 
 // Flag indicating if to keep capturing
-static volatile sig_atomic_t running = 1;
+static volatile sig_atomic_t g_running = 1;
+
+// Global pointer used by interrupt
+static CapSession* g_session = NULL;
 
 static int set_options(pcap_t* handle) {
     // These options for capturing devices are hardcoded for now
@@ -92,11 +97,7 @@ err_handle:
     return NULL;
 }
 
-// https://www.tcpdump.org/manpages/libpcap-1.10.4/pcap_loop.3pcap.html
-
-static int capture_device_loop(CapSession* session) {
-    log_print("STARTING capturing on device `%s`\n", session->device_or_file);
-
+static int set_non_blocking(CapSession* session, int* fd, struct timespec* ts, sigset_t* empty_set) {
     char err_msg[PCAP_ERRBUF_SIZE];
 
     if (pcap_setnonblock(session->handle, 1, err_msg) < 0) {
@@ -104,20 +105,19 @@ static int capture_device_loop(CapSession* session) {
         return -1;
     }
 
-    const int fd = pcap_get_selectable_fd(session->handle);
+    *fd = pcap_get_selectable_fd(session->handle);
 
-    if (fd < 0) {
+    if (*fd < 0) {
         log_print("Could not retrieve file descriptor\n");
         return -1;
     }
 
     // Set a timeout of 1 second
-    struct timespec ts = {0};
-    ts.tv_sec = 1;
+    memset(ts, 0, sizeof(struct timespec));
+    ts->tv_sec = 1;
 
     // Used to unblock SIGINT during pselect
-    sigset_t empty_set;
-    sigemptyset(&empty_set);
+    sigemptyset(empty_set);
 
     // Block SIGINT signals by default
     sigset_t block_set;
@@ -130,7 +130,23 @@ static int capture_device_loop(CapSession* session) {
         return -1;
     }
 
-    while (running) {
+    return 0;
+}
+
+// https://www.tcpdump.org/manpages/libpcap-1.10.4/pcap_loop.3pcap.html
+
+static int loop_capture_device(CapSession* session) {
+    log_print("STARTING capturing on device `%s`\n", session->device_or_file);
+
+    int fd = 0;
+    struct timespec ts = {0};
+    sigset_t empty_set = {0};
+
+    if (set_non_blocking(session, &fd, &ts, &empty_set) < 0) {
+        return -1;
+    }
+
+    while (g_running) {
         fd_set files;
         FD_ZERO(&files);
         FD_SET(fd, &files);
@@ -147,12 +163,16 @@ static int capture_device_loop(CapSession* session) {
         if (FD_ISSET(fd, &files)) {
             const int result = pcap_dispatch(session->handle, 0, process_packet, (unsigned char*) session);
 
-            if (result < 0) {
-                log_print("An error occurred capturing packets\n");
+            if (result == PCAP_ERROR_BREAK) {
                 continue;
             }
 
-            log_print("%d packet(s) captured\n", result);
+            if (result < 0) {
+                log_print("An error occurred capturing packets from device: %d\n", result);
+                continue;
+            }
+
+            LOG_IF_VERBOSE log_print("%d packet(s) captured\n", result);
         }
     }
 
@@ -161,11 +181,13 @@ static int capture_device_loop(CapSession* session) {
     return 0;
 }
 
-static int capture_file_loop(CapSession* session) {
+static int loop_capture_file(CapSession* session) {
     log_print("STARTING reading save file `%s`\n", session->device_or_file);
 
-    if (pcap_loop(session->handle, 0, process_packet, (unsigned char*) session) < 0) {
-        log_print("An error occurred reading packets from save file `%s`\n", session->device_or_file);
+    const int result = pcap_loop(session->handle, 0, process_packet, (unsigned char*) session);
+
+    if (result < 0 && result != PCAP_ERROR_BREAK) {
+        log_print("An error occurred reading packets from save file: %d\n", result);
         return -1;
     }
 
@@ -196,11 +218,15 @@ int cap_initialize_session(CapSession* session, const char* device_or_file, CapT
     session->device_or_file = device_or_file;
     session->type = type;
 
+    g_session = session;
+
     return 0;
 }
 
 void cap_uninitialize_session(CapSession* session) {
     pcap_close(session->handle);
+
+    g_session = NULL;
 }
 
 int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* user) {
@@ -211,10 +237,10 @@ int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* use
 
     switch (session->type) {
         case CapDevice:
-            result = capture_device_loop(session);
+            result = loop_capture_device(session);
             break;
         case CapFile:
-            result = capture_file_loop(session);
+            result = loop_capture_file(session);
             break;
     }
 
@@ -222,7 +248,11 @@ int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* use
 }
 
 void cap_stop_signal() {
-    running = 0;
+    g_running = 0;
+
+    if (g_session != NULL) {
+        pcap_breakloop(g_session->handle);
+    }
 }
 
 const char* cap_get_pcap_version() {

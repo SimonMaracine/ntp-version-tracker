@@ -5,11 +5,15 @@
 #include <assert.h>
 
 #include "logging.h"
+#include "capture/session.h"
 
 // Logging could be used everywhere, so use static memory
 
+static unsigned long g_max_bytes = 0;  // This is a very *soft* limit
 static unsigned int g_log_target_mask = 0;  // Mask 0 is invalid
 static FILE* g_log_file = NULL;  // Flushing is not controlled by this code
+
+static unsigned long g_current_bytes_printed = 0;
 
 static void get_current_time(char* out) {
     // Www Mmm dd hh:mm:ss yyyy\n => 25 + 1 bytes
@@ -29,9 +33,22 @@ static void get_current_time(char* out) {
     out[24] = '\0';
 }
 
-int log_initialize(const char* file_name, unsigned int target_mask) {
+static void count_bytes(int bytes_or_error) {
+    if (bytes_or_error < 0) {
+        return;
+    }
+
+    g_current_bytes_printed += bytes_or_error;
+
+    if (g_current_bytes_printed >= g_max_bytes) {
+        cap_stop_signal();
+    }
+}
+
+int log_initialize(const char* file_name, unsigned int target_mask, unsigned long max_bytes) {
     assert(target_mask != 0);
 
+    g_max_bytes = max_bytes;
     g_log_target_mask = target_mask;
 
     // Don't deal with files, if not necessary
@@ -70,14 +87,14 @@ void log_print(const char* format, ...) {
         case LogFile: {
             assert(g_log_file != NULL);
 
-            fprintf(g_log_file, "[%s] ", current_time);
-            vfprintf(g_log_file, format, args);
+            count_bytes(fprintf(g_log_file, "[%s] ", current_time));
+            count_bytes(vfprintf(g_log_file, format, args));
 
             break;
         }
         case LogConsole: {
-            fprintf(stdout, "[%s] ", current_time);
-            vfprintf(stdout, format, args);
+            count_bytes(fprintf(stdout, "[%s] ", current_time));
+            count_bytes(vfprintf(stdout, format, args));
 
             break;
         }
@@ -87,10 +104,10 @@ void log_print(const char* format, ...) {
             va_list args2;
             va_copy(args2, args);
 
-            fprintf(g_log_file, "[%s] ", current_time);
-            vfprintf(g_log_file, format, args);
-            fprintf(stdout, "[%s] ", current_time);
-            vfprintf(stdout, format, args2);
+            count_bytes(fprintf(g_log_file, "[%s] ", current_time));
+            count_bytes(vfprintf(g_log_file, format, args));
+            count_bytes(fprintf(stdout, "[%s] ", current_time));
+            count_bytes(vfprintf(stdout, format, args2));
 
             va_end(args2);
 

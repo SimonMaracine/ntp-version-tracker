@@ -105,8 +105,6 @@ static int get_ethernet_type(const struct ether_header* ethernet_header, const u
     return 0;
 }
 
-#define IF_VERBOSE if (session->verbose)
-
 void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
     CapSession* session = (CapSession*) user;
     unsigned int pointer = 0;  // Incremented every time a header is processed
@@ -116,45 +114,45 @@ void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const
     session->headers.ethernet_header = check_ethernet(header, packet, &pointer);
 
     if (session->headers.ethernet_header == NULL) {
-        IF_VERBOSE log_print("(No Ethernet)\n");
+        LOG_IF_VERBOSE log_print("(No Ethernet)\n");
         goto stop_and_call;
     }
 
     uint16_t ethernet_type = 0;
     if (get_ethernet_type(session->headers.ethernet_header, packet, pointer, &ethernet_type) < 0) {
-        IF_VERBOSE log_print("(No Ethernet; it is 802.3)\n");  // FIXME
+        LOG_IF_VERBOSE log_print("(No Ethernet; it is 802.3)\n");  // FIXME
         session->headers.ethernet_header = NULL;
         goto stop_and_call;
     }
 
     if (ethernet_type != ETHERTYPE_IP) {
-        IF_VERBOSE log_print("(No IPv4; protocol is %u)\n", ethernet_type);
+        LOG_IF_VERBOSE log_print("(No IPv4; protocol is %u)\n", ethernet_type);
         goto stop_and_call;
     }
 
     session->headers.ipv4_header = check_ip(header, packet, &pointer);
 
     if (session->headers.ipv4_header == NULL) {
-        IF_VERBOSE log_print("(No IP)\n");
+        LOG_IF_VERBOSE log_print("(No IP)\n");
         goto stop_and_call;
     }
 
     assert(session->headers.ipv4_header->ip_v == 4);  // IPv4 is checked above
 
     if (session->headers.ipv4_header->ip_p != 17) {
-        IF_VERBOSE log_print("(No UDP; protocol is %u)\n", session->headers.ipv4_header->ip_p);
+        LOG_IF_VERBOSE log_print("(No UDP; protocol is %u)\n", session->headers.ipv4_header->ip_p);
         goto stop_and_call;
     }
 
     session->headers.udp_header = check_udp(header, packet, &pointer);
 
     if (session->headers.udp_header == NULL) {
-        IF_VERBOSE log_print("(No UDP)\n");
+        LOG_IF_VERBOSE log_print("(No UDP)\n");
         goto stop_and_call;
     }
 
     if (ntohs(session->headers.udp_header->source) != 123 && ntohs(session->headers.udp_header->dest) != 123) {
-        IF_VERBOSE log_print(
+        LOG_IF_VERBOSE log_print(
             "(No NTP; ports are %u -> %u)\n",
             ntohs(session->headers.udp_header->source),
             ntohs(session->headers.udp_header->dest)
@@ -165,7 +163,7 @@ void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const
     session->headers.ntp_header = check_ntp(header, packet, &pointer);
 
     if (session->headers.ntp_header == NULL) {
-        IF_VERBOSE log_print("(No NTP)\n");
+        LOG_IF_VERBOSE log_print("(No NTP)\n");
         goto stop_and_call;
     }
 

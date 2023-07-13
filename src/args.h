@@ -13,6 +13,7 @@ typedef struct {
     ArgsCommand command;
     const char* device_or_file;
     unsigned int log_target_mask;
+    unsigned long max_bytes;
     const char* log_file;
 } Args;
 

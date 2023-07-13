@@ -23,18 +23,20 @@ typedef enum {
 } CapType;
 
 typedef struct {
-    void* handle;  // pcap_t handle
+    void* handle;  // pcap_t
+
     const char* device_or_file;
     CapType type;
+    bool verbose;
 
     CapPacketCaptured callback;
     void* user_data;
-    bool verbose;
 
     CapPacketHeaders headers;
 } CapSession;
 
-int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type, bool verbose);
+int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type,
+    const char* filter, bool verbose);
 void cap_uninitialize_session(CapSession* session);
 
 int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* user);

@@ -28,13 +28,13 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         return;
     }
 
-    // log_print("IP proto %u\n", headers->ipv4_header->ip_p);
+    log_print("IP proto %u\n", headers->ipv4_header->ip_p);
 
-    char source[16];
-    char destination[16];
-    formatted_ip(&headers->ipv4_header->ip_src, source);
-    formatted_ip(&headers->ipv4_header->ip_dst, destination);
-    log_print("IP src %s --- dest %s\n", source, destination);
+    // char source[16];
+    // char destination[16];
+    // formatted_ip(&headers->ipv4_header->ip_src, source);
+    // formatted_ip(&headers->ipv4_header->ip_dst, destination);
+    // log_print("IP src %s --- dest %s\n", source, destination);
 
     if (headers->udp_header == NULL) {
         return;
@@ -69,6 +69,10 @@ static void print_capture_status(const Args* args) {
         printf(", log_file: %s", args->log_file);
     }
 
+    if (args->filter != NULL) {
+        printf(", filter: %s", args->filter);
+    }
+
     if (args->verbose) {
         printf(", verbose");
     }
@@ -91,7 +95,7 @@ static int capture(const Args* args) {
 
     const CapType type = args->command == CmdCaptureDevice ? CapDevice : CapFile;
 
-    if (cap_initialize_session(&session, args->device_or_file, type, args->verbose) < 0) {
+    if (cap_initialize_session(&session, args->device_or_file, type, args->filter, args->verbose) < 0) {
         return 1;
     }
 

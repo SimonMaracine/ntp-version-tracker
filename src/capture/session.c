@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "session.h"
 #include "processing.h"
@@ -21,22 +22,22 @@ static int set_options(pcap_t* handle) {
     // These options for capturing devices are hardcoded for now
 
     if (pcap_set_snaplen(handle, 65535) == PCAP_ERROR_ACTIVATED) {
-        log_print("Could not set snaplen\n");
+        printf("Could not set snaplen\n");
         return -1;
     }
 
     if (pcap_set_promisc(handle, 1) == PCAP_ERROR_ACTIVATED) {
-        log_print("Could not set promisc\n");
+        printf("Could not set promisc\n");
         return -1;
     }
 
     if (pcap_set_timeout(handle, 1000) == PCAP_ERROR_ACTIVATED) {
-        log_print("Could not set timeout\n");
+        printf("Could not set timeout\n");
         return -1;
     }
 
     if (pcap_set_buffer_size(handle, 4096) == PCAP_ERROR_ACTIVATED) {
-        log_print("Could not set buffer_size\n");
+        printf("Could not set buffer_size\n");
         return -1;
     }
 
@@ -59,7 +60,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     }
 
     if (handle == NULL) {
-        log_print("Could not open device `%s`: %s\n", device_or_file, err_msg);
+        printf("Could not open device `%s`: %s\n", device_or_file, err_msg);
         return NULL;
     }
 
@@ -76,9 +77,9 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     const int result = pcap_activate(handle);
 
     if (result > 0) {
-        log_print("Warning on activating device `%s`: %d\n", device_or_file, result);
+        printf("Warning on activating device `%s`: %d\n", device_or_file, result);
     } if (result < 0) {
-        log_print("An error occurred activating device `%s`: %d\n", device_or_file, result);
+        printf("An error occurred activating device `%s`: %d\n", device_or_file, result);
         return NULL;
     }
 
@@ -86,7 +87,7 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
     const int headers_type = pcap_datalink(handle);
 
     if (headers_type != DLT_EN10MB) {
-        log_print("Device `%s` does not provide Ethernet headers\n", device_or_file);
+        printf("Device `%s` does not provide Ethernet headers\n", device_or_file);
         return NULL;
     }
 
@@ -94,25 +95,15 @@ static pcap_t* initialize_handle(const char* device_or_file, CapType type) {
 }
 
 static int apply_filter(pcap_t* handle, const char* filter) {
-    // char err_msg[PCAP_ERRBUF_SIZE];
-
-    // unsigned int mask = 0;
-    // unsigned int net = 0;
-
-    // if (pcap_lookupnet(session->device_or_file, &net, &mask, err_msg) < 0) {
-    //     log_print("Could not get netmask for device `%s`\n", session->device_or_file);
-    //     return -1;
-    // }
-
     struct bpf_program filter_program = {0};
 
-    if (pcap_compile(handle, &filter_program, filter, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
-        log_print("Could not compile filter program `%s`: %s\n", filter, pcap_geterr(handle));
+    if (pcap_compile(handle, &filter_program, filter, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {  // TODO
+        printf("Could not compile filter program `%s`: %s\n", filter, pcap_geterr(handle));
         return -1;
     }
 
     if (pcap_setfilter(handle, &filter_program) == PCAP_ERROR) {
-        log_print("Could not set filter program `%s` on handle: %s\n", filter, pcap_geterr(handle));
+        printf("Could not set filter program `%s` on handle: %s\n", filter, pcap_geterr(handle));
         return -1;
     }
 
@@ -125,14 +116,14 @@ static int set_non_blocking(CapSession* session, int* fd, struct timespec* ts, s
     char err_msg[PCAP_ERRBUF_SIZE];
 
     if (pcap_setnonblock(session->handle, 1, err_msg) < 0) {
-        log_print("Could not set session in non-blocking mode: %s\n", err_msg);
+        printf("Could not set session in non-blocking mode: %s\n", err_msg);
         return -1;
     }
 
     *fd = pcap_get_selectable_fd(session->handle);
 
     if (*fd < 0) {
-        log_print("Could not retrieve file descriptor\n");
+        printf("Could not retrieve file descriptor\n");
         return -1;
     }
 
@@ -150,7 +141,7 @@ static int set_non_blocking(CapSession* session, int* fd, struct timespec* ts, s
 
     // Set the signal mask
     if (sigprocmask(SIG_BLOCK, &block_set, NULL) < 0) {
-        log_print("Error blocking interrupt signal\n");
+        printf("Error blocking interrupt signal\n");
         return -1;
     }
 
@@ -160,8 +151,6 @@ static int set_non_blocking(CapSession* session, int* fd, struct timespec* ts, s
 // https://www.tcpdump.org/manpages/libpcap-1.10.4/pcap_loop.3pcap.html
 
 static int loop_capture_device(CapSession* session) {
-    log_print("STARTING capturing on device `%s`\n", session->device_or_file);
-
     int fd = 0;
     struct timespec ts = {0};
     sigset_t empty_set = {0};
@@ -169,6 +158,8 @@ static int loop_capture_device(CapSession* session) {
     if (set_non_blocking(session, &fd, &ts, &empty_set) < 0) {
         return -1;
     }
+
+    log_print("STARTING to capture on device `%s`\n", session->device_or_file);
 
     while (g_running) {
         fd_set files;
@@ -206,7 +197,7 @@ static int loop_capture_device(CapSession* session) {
 }
 
 static int loop_capture_file(CapSession* session) {
-    log_print("STARTING reading save file `%s`\n", session->device_or_file);
+    log_print("STARTING to read save file `%s`\n", session->device_or_file);
 
     const int result = pcap_loop(session->handle, 0, process_packet, (unsigned char*) session);
 
@@ -228,7 +219,7 @@ int cap_initialize_session(CapSession* session, const char* device_or_file, CapT
     char err_msg[PCAP_ERRBUF_SIZE];
 
     if (pcap_init(PCAP_CHAR_ENC_UTF_8, err_msg) == PCAP_ERROR) {
-        log_print("Could not initialize pcap: %s\n", err_msg);
+        printf("Could not initialize pcap: %s\n", err_msg);
         return -1;
     }
 

@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "args.h"
 #include "logging.h"
@@ -89,13 +90,14 @@ Args* args_parse_arguments(int argc, char** argv) {
     args.log_target_mask = LogConsole;
     args.max_bytes = 8388608;
     args.log_file = "capture.log";
+    args.verbose = false;
 
     // Don't print error messages from the library
     opterr = 0;
 
     int c = 0;
 
-    while ((c = getopt(argc, argv, "d:f:t:m:l:hv")) != -1) {
+    while ((c = getopt(argc, argv, "d:f:t:m:l:Vhv")) != -1) {
         switch (c) {
             case 'd':
             case 'f':
@@ -124,6 +126,10 @@ Args* args_parse_arguments(int argc, char** argv) {
                 break;
             case 'l':
                 args.log_file = optarg;
+
+                break;
+            case 'V':
+                args.verbose = true;
 
                 break;
             case 'h':
@@ -177,8 +183,8 @@ Args* args_parse_arguments(int argc, char** argv) {
 void args_print_help() {
     printf(
         "usage:\n"
-        "    ntp_version_tracker -d <device> [ -t <log_target> -m <max_bytes> -l <log_file> ]\n"
-        "    ntp_version_tracker -f <file> [ -t <log_target> -m <max_bytes> -l <log_file> ]\n"
+        "    ntp_version_tracker -d <device> [ -t <log_target> -m <max_bytes> -l <log_file> -V ]\n"
+        "    ntp_version_tracker -f <file> [ -t <log_target> -m <max_bytes> -l <log_file> -V ]\n"
         "\n"
         "commands:\n"
         "    -d Capture a device\n"
@@ -187,6 +193,7 @@ void args_print_help() {
         "       Possible values are [cCfF]+\n"
         "    -m Set a soft limit of bytes logged (optional)\n"
         "    -l Set the log file path, if even used (optional)\n"
+        "    -V Print additional information (optional)\n"
         "    -h Display this help\n"
         "    -v Show version\n"
         "\n"

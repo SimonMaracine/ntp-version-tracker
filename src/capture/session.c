@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "session.h"
 #include "processing.h"
@@ -196,7 +197,7 @@ static int loop_capture_file(CapSession* session) {
     return 0;
 }
 
-int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type) {
+int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type, bool verbose) {
     // Argument device_or_file must be a literal string
     // Logging must have been initialized already
 
@@ -217,6 +218,7 @@ int cap_initialize_session(CapSession* session, const char* device_or_file, CapT
     session->handle = handle;
     session->device_or_file = device_or_file;
     session->type = type;
+    session->verbose = verbose;
 
     g_session = session;
 

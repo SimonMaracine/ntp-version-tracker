@@ -31,11 +31,11 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
 
     // log_print("IP proto %u\n", headers->ipv4_header->ip_p);
 
-    // char source[16];
-    // char destination[16];
-    // formatted_ip(&headers->ipv4_header->ip_src, source);
-    // formatted_ip(&headers->ipv4_header->ip_dst, destination);
-    // log_print("IP src %s --- dest %s\n", source, destination);
+    char source[16];
+    char destination[16];
+    formatted_ip(&headers->ipv4_header->ip_src, source);
+    formatted_ip(&headers->ipv4_header->ip_dst, destination);
+    log_print("IP src %s --- dest %s\n", source, destination);
 
     if (headers->udp_header == NULL) {
         return;
@@ -67,10 +67,14 @@ static void print_capture_status(const Args* args) {
     );
 
     if (args->log_target_mask & LogFile) {
-        printf(", log_file: %s\n", args->log_file);
-    } else {
-        printf("\n");
+        printf(", log_file: %s", args->log_file);
     }
+
+    if (args->verbose) {
+        printf(", verbose");
+    }
+
+    printf("\n");
 }
 
 static int capture(const Args* args) {
@@ -88,11 +92,9 @@ static int capture(const Args* args) {
 
     const CapType type = args->command == CmdCaptureDevice ? CapDevice : CapFile;
 
-    if (cap_initialize_session(&session, args->device_or_file, type) < 0) {
+    if (cap_initialize_session(&session, args->device_or_file, type, args->verbose) < 0) {
         return 1;
     }
-
-    session.verbose = true;  // TODO
 
     if (cap_start_capture(&session, packet_captured, NULL) < 0) {
         cap_uninitialize_session(&session);

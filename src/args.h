@@ -1,6 +1,8 @@
 #ifndef ARGS_H
 #define ARGS_H
 
+#include <stdbool.h>
+
 typedef enum {
     CmdNone,
     CmdCaptureDevice,
@@ -14,6 +16,7 @@ typedef struct {
     const char* device_or_file;
     unsigned int log_target_mask;
     unsigned long max_bytes;
+    bool verbose;
     const char* log_file;
 } Args;
 

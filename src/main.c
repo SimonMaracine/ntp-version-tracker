@@ -28,13 +28,13 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         return;
     }
 
-    // log_print("IP proto %u\n", headers->ipv4_header->ip_p);
+    log_print("IP proto %u\n", headers->ipv4_header->ip_p);
 
-    char source[16];
-    char destination[16];
-    formatted_ip(&headers->ipv4_header->ip_src, source);
-    formatted_ip(&headers->ipv4_header->ip_dst, destination);
-    log_print("IP src %s --- dest %s\n", source, destination);
+    // char source[16];
+    // char destination[16];
+    // formatted_ip(&headers->ipv4_header->ip_src, source);
+    // formatted_ip(&headers->ipv4_header->ip_dst, destination);
+    // log_print("IP src %s --- dest %s\n", source, destination);
 
     if (headers->udp_header == NULL) {
         return;
@@ -67,6 +67,10 @@ static void print_capture_status(const Args* args) {
 
     if (args->log_target_mask & LogFile) {
         printf(", log_file: %s", args->log_file);
+    }
+
+    if (args->filter != NULL) {
+        printf(", filter: %s", args->filter);
     }
 
     if (args->verbose) {

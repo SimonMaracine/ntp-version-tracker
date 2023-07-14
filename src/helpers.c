@@ -29,7 +29,6 @@ int set_interrupt_handler(void(*interrupt_handler)(int)) {
     sa.sa_handler = interrupt_handler;
 
     if (sigaction(SIGINT, &sa, NULL) < 0) {
-        printf("Could not set interrupt handler\n");
         return -1;
     }
 

@@ -83,7 +83,7 @@ static ArgsCommand parse_miscellaneous_command(int option) {
     }
 }
 
-Args* args_parse_arguments(int argc, char** argv) {
+const Args* args_parse_arguments(int argc, char** argv) {
     static Args args = {0};
 
     // Default arguments

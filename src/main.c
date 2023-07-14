@@ -88,11 +88,12 @@ static void print_capture_status(const Args* args) {
     printf("\n");
 }
 
-// Main opertion of the program
+// Main operation of the program
 static int capture(const Args* args) {
     print_capture_status(args);
 
     if (set_interrupt_handler(interrupt_handler) < 0) {
+        printf("Could not set interrupt handler\n");
         return 1;
     }
 

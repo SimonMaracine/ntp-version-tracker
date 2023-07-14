@@ -117,7 +117,7 @@ void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const
 
     uint16_t ethernet_type = 0;
     if (get_ethernet_type(session->headers.ethernet_header, &ethernet_type) < 0) {
-        LOG_IF_VERBOSE log_print("(No Ethernet II\n");
+        LOG_IF_VERBOSE log_print("(No Ethernet II)\n");
         session->headers.ethernet_header = NULL;
         goto stop_and_call;
     }

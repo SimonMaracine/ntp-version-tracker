@@ -37,7 +37,7 @@ typedef struct {
  * @return a pointer to a struct with various program flags and options
  * @see Args
 */
-Args* args_parse_arguments(int argc, char** argv);
+const Args* args_parse_arguments(int argc, char** argv);
 
 /**
  * Print a help text message.

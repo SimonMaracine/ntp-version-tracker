@@ -88,6 +88,7 @@ static void print_capture_status(const Args* args) {
     printf("\n");
 }
 
+// Main opertion of the program
 static int capture(const Args* args) {
     print_capture_status(args);
 

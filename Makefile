@@ -1,36 +1,47 @@
-SRC_DIR = src
-OUT_DIR = out
-SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/*/*.c)
-BIN = ntp_version_tracker
+SRC_DIR := src
+BUILD_DIR := build
+BIN_DIR := bin
+
+SOURCES := $(wildcard $(SRC_DIR)/*.c $(SRC_DIR)/**/*.c)
+HEADERS := $(wildcard $(SRC_DIR)/*.h $(SRC_DIR)/**/*.h)
+OBJECTS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
+TARGET := ntp_version_tracker
 
 # Compiler flags
-WARNINGS = -Wall -Wextra -pedantic
-LIBS = -lpcap
-ARGS = -std=c11 -D _GNU_SOURCE
+WARNINGS := -Wall -Wextra -pedantic
+LIBS := -lpcap
+FLAGS := -std=c11 -D _GNU_SOURCE
 # -D_POSIX_C_SOURCE=200809L
 
-ifeq ($(BUILD_RELEASE), ON)
-OPTIMIZATION = -O2
+# Option for compiling with optimization
+BUILD_RELEASE ?=
+
+ifeq ($(BUILD_RELEASE), 1)
+FLAGS += -O2
 else
-OPTIMIZATION = -O0
+FLAGS += -O0
 endif
 
-.PHONY: all
-all: ntp_version_tracker
+.PHONY: all clean
 
-# For router
-ntp_version_tracker: $(SOURCES)
-	@mkdir -p $(OUT_DIR)
-	$(CC) $(SOURCES) $(WARNINGS) $(OPTIMIZATION) $(ARGS) -static $(LIBS) -o $(OUT_DIR)/$(BIN)
+all: $(TARGET)
+
+# For router; run setup.sh before
+$(TARGET): $(OBJECTS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $^ -o $(BIN_DIR)/$@ $(FLAGS) -static $(LIBS)
 
 # For any Linux machine
-local_ntp_version_tracker: $(SOURCES)
-	@mkdir -p $(OUT_DIR)
-	$(CC) $(SOURCES) $(WARNINGS) $(OPTIMIZATION) $(ARGS) $(LIBS) -o $(OUT_DIR)/local_$(BIN)
+local_$(TARGET): $(OBJECTS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $^ -o $(BIN_DIR)/$@ $(FLAGS) $(LIBS)
 
-.PHONY: clean
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+	@mkdir -p $(@D)
+	$(CC) -c $< -o $@ $(WARNINGS) $(FLAGS)
+
 clean:
-	rm -rf $(OUT_DIR)
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
 upload:
-	scp $(OUT_DIR)/$(BIN) root@192.168.1.1:/tmp/$(BIN)
+	scp $(BIN_DIR)/$(TARGET) root@192.168.1.1:/tmp/$(TARGET)

@@ -1,6 +1,7 @@
 #ifndef CAPTURE_SESSION
 #define CAPTURE_SESSION
 
+#include <stdbool.h>
 #include <net/ethernet.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
@@ -14,24 +15,19 @@ typedef struct {
     const NtpHeader* ntp_header;  // Without authentication (last field)
 } CapPacketHeaders;
 
-typedef void(*CapPacketCaptured)(const CapPacketHeaders* headers, unsigned int available, void* user);
+typedef void(*CapPacketCaptured)(const CapPacketHeaders* headers, void* user);
 
 typedef enum {
     CapDevice,
     CapFile
 } CapType;
 
-typedef enum {
-    CapAvailableEthernet = 1 << 0,
-    CapAvailableIpv4 = 1 << 1,
-    CapAvailableUdp = 1 << 2,
-    CapAvailableNtp = 1 << 3
-} CapAvailableHeader;
-
 typedef struct {
-    void* handle;  // pcap_t handle
+    void* handle;  // pcap_t
+
     const char* device_or_file;
     CapType type;
+    bool verbose;
 
     CapPacketCaptured callback;
     void* user_data;
@@ -39,7 +35,8 @@ typedef struct {
     CapPacketHeaders headers;
 } CapSession;
 
-int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type);
+int cap_initialize_session(CapSession* session, const char* device_or_file, CapType type,
+    const char* filter, bool verbose);
 void cap_uninitialize_session(CapSession* session);
 
 int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* user);

@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 typedef struct {
-    uint8_t li_vn_mode;
+    uint8_t li_vn_mode;  // 2-3-3 bits respectively
     uint8_t stratum;
     uint8_t poll;
     int8_t precision;

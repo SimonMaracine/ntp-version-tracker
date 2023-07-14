@@ -11,37 +11,50 @@
 #include "helpers.h"
 
 // User side callback for processing packets
-static void packet_captured(const CapPacketHeaders* headers, unsigned int available, void* user) {
+static void packet_captured(const CapPacketHeaders* headers, void* user) {
     (void) user;
-    (void) available;
 
-    // if (headers->ethernet_header == NULL) {
-    //     return;
-    // }
+    if (headers->ethernet_header == NULL) {
+        return;
+    }
 
-    // char source[18];
-    // char destination[18];
-    // formatted_mac(headers->ethernet_header->ether_shost, source);
-    // formatted_mac(headers->ethernet_header->ether_dhost, destination);
-    // log_print("S %s --- D %s (T %hu)\n", source, destination, headers->ethernet_header->ether_type);
+    {
+        char source[18];
+        char destination[18];
+        formatted_mac(headers->ethernet_header->ether_shost, source);
+        formatted_mac(headers->ethernet_header->ether_dhost, destination);
+        log_print("S %s --- D %s (T %hu)\n", source, destination, headers->ethernet_header->ether_type);
+    }
 
-    // if (headers->ipv4_header == NULL) {
-    //     return;
-    // }
+    if (headers->ipv4_header == NULL) {
+        return;
+    }
 
-    // log_print("IP proto %u\n", headers->ipv4_header->ip_p);
+    log_print("IP proto %u\n", headers->ipv4_header->ip_p);
+
+    {
+        char source[16];
+        char destination[16];
+        formatted_ip(&headers->ipv4_header->ip_src, source);
+        formatted_ip(&headers->ipv4_header->ip_dst, destination);
+        log_print("IP src %s --- dest %s\n", source, destination);
+    }
 
     if (headers->udp_header == NULL) {
         return;
     }
 
-    log_print("UDP src %hu ----> dest %hu\n", headers->udp_header->source, headers->udp_header->dest);
+    log_print(
+        "UDP src %hu ----> dest %hu\n",
+        ntohs(headers->udp_header->source),
+        ntohs(headers->udp_header->dest)
+    );
 
     if (headers->ntp_header == NULL) {
         return;
     }
 
-    log_print("NTP version %lu\n", headers->ntp_header->li_vn_mode & 0x38);
+    log_print("NTP version %u\n", (headers->ntp_header->li_vn_mode & 0x38) >> 3);
 
     // Can do other stuff
 }
@@ -54,16 +67,25 @@ static void interrupt_handler(int signal) {
 
 static void print_capture_status(const Args* args) {
     printf(
-        "device: %s, log_target: %s",
+        "device: %s, log_target: %s, max_bytes: %lu",
         args->device_or_file,
-        args_log_target_format(args->log_target_mask)
+        args_log_target_format(args->log_target_mask),
+        args->max_bytes
     );
 
     if (args->log_target_mask & LogFile) {
-        printf(", log_file: %s\n", args->log_file);
-    } else {
-        printf("\n");
+        printf(", log_file: %s", args->log_file);
     }
+
+    if (args->filter != NULL) {
+        printf(", filter: %s", args->filter);
+    }
+
+    if (args->verbose) {
+        printf(", verbose");
+    }
+
+    printf("\n");
 }
 
 static int capture(const Args* args) {
@@ -73,7 +95,7 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    if (log_initialize(args->log_file, args->log_target_mask) < 0) {
+    if (log_initialize(args->log_file, args->log_target_mask, args->max_bytes) < 0) {
         return 1;
     }
 
@@ -81,7 +103,7 @@ static int capture(const Args* args) {
 
     const CapType type = args->command == CmdCaptureDevice ? CapDevice : CapFile;
 
-    if (cap_initialize_session(&session, args->device_or_file, type) < 0) {
+    if (cap_initialize_session(&session, args->device_or_file, type, args->filter, args->verbose) < 0) {
         return 1;
     }
 

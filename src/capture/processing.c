@@ -2,6 +2,8 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <pcap/pcap.h>
+#include <assert.h>
+#include <string.h>
 
 #include "processing.h"
 #include "session.h"
@@ -9,6 +11,10 @@
 #include "../logging.h"
 
 // https://en.wikipedia.org/wiki/Ethernet_frame
+// https://en.wikipedia.org/wiki/EtherType#Values
+// https://wiki.wireshark.org/Ethernet
+// https://www.firewall.cx/networking/ethernet/ieee-8023-snap-frame.html
+// https://www.ibm.com/support/pages/ethernet-version-2-versus-ieee-8023-ethernet
 // https://en.wikipedia.org/wiki/Internet_Protocol_version_4#Header
 // https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
 // https://en.wikipedia.org/wiki/User_Datagram_Protocol
@@ -30,7 +36,7 @@ static const struct ether_header* check_ethernet(const struct pcap_pkthdr* heade
     return ethernet_header;
 }
 
-static const struct ip* check_ipv4(const struct pcap_pkthdr* header, const unsigned char* packet,
+static const struct ip* check_ip(const struct pcap_pkthdr* header, const unsigned char* packet,
         unsigned int* pointer) {
     const unsigned int MIN_HEADER_SIZE = 20;
 
@@ -39,11 +45,6 @@ static const struct ip* check_ipv4(const struct pcap_pkthdr* header, const unsig
     }
 
     const struct ip* ip_header = (const struct ip*) (packet + *pointer);
-
-    if (ip_header->ip_v != 4) {
-        // No IPv4
-        return NULL;
-    }
 
     if (ip_header->ip_hl * 4 < MIN_HEADER_SIZE) {
         // Invalid header size
@@ -66,8 +67,8 @@ static const struct udphdr* check_udp(const struct pcap_pkthdr* header, const un
 
     const struct udphdr* udp_header = (const struct udphdr*) (packet + *pointer);
 
-    if (udp_header->len < HEADER_SIZE) {
-        // Invalid header size
+    if (ntohs(udp_header->len) < HEADER_SIZE) {
+        // Invalid datagram size
         return NULL;
     }
 
@@ -86,67 +87,83 @@ static const NtpHeader* check_ntp(const struct pcap_pkthdr* header, const unsign
     return (const NtpHeader*) (packet + *pointer);
 }
 
+static int get_ethernet_type(const struct ether_header* ethernet_header, uint16_t* ethernet_type) {
+    const uint16_t type = ntohs(ethernet_header->ether_type);
+
+    if (type >= 1536) {  // Ethernet II
+        *ethernet_type = type;
+    } else if (type <= 1500) {  // Ethernet 802.3
+        *ethernet_type = 0;
+        return -1;
+    } else {  // Invalid
+        return -1;
+    }
+
+    return 0;
+}
+
 void process_packet(unsigned char* user, const struct pcap_pkthdr* header, const unsigned char* packet) {
     CapSession* session = (CapSession*) user;
     unsigned int pointer = 0;  // Incremented every time a header is processed
-    unsigned int available_mask = 0;
 
-    const struct ether_header* ethernet_header = NULL;
-    const struct ip* ip_header = NULL;
-    const struct udphdr* udp_header = NULL;
-    const NtpHeader* ntp_header = NULL;
+    memset(&session->headers, 0, sizeof(CapPacketHeaders));
 
-    ethernet_header = check_ethernet(header, packet, &pointer);
+    session->headers.ethernet_header = check_ethernet(header, packet, &pointer);
 
-    if (ethernet_header == NULL) {
-        log_print("(No Ethernet header)\n");
+    if (session->headers.ethernet_header == NULL) {
+        LOG_IF_VERBOSE log_print("(No Ethernet)\n");
         goto stop_and_call;
     }
 
-    available_mask |= CapAvailableEthernet;
-
-    ip_header = check_ipv4(header, packet, &pointer);
-
-    if (ip_header == NULL) {
-        log_print("(No IPv4 header)\n");
+    uint16_t ethernet_type = 0;
+    if (get_ethernet_type(session->headers.ethernet_header, &ethernet_type) < 0) {
+        LOG_IF_VERBOSE log_print("(No Ethernet II\n");
+        session->headers.ethernet_header = NULL;
         goto stop_and_call;
     }
 
-    available_mask |= CapAvailableIpv4;
-
-    if (ip_header->ip_p != 17) {
-        log_print("(No UDP header)\n");
+    if (ethernet_type != ETHERTYPE_IP) {
+        LOG_IF_VERBOSE log_print("(No IPv4; protocol is %u)\n", ethernet_type);
         goto stop_and_call;
     }
 
-    udp_header = check_udp(header, packet, &pointer);
+    session->headers.ipv4_header = check_ip(header, packet, &pointer);
 
-    if (udp_header == NULL) {
-        log_print("(No UDP header)\n");
+    if (session->headers.ipv4_header == NULL) {
+        LOG_IF_VERBOSE log_print("(No IP)\n");
         goto stop_and_call;
     }
 
-    available_mask |= CapAvailableUdp;
+    assert(session->headers.ipv4_header->ip_v == 4);  // IPv4 is checked above
 
-    if (udp_header->source != 123 && udp_header->dest != 123) {
-        log_print("(No NTP header)\n");
+    if (session->headers.ipv4_header->ip_p != 17) {
+        LOG_IF_VERBOSE log_print("(No UDP; protocol is %u)\n", session->headers.ipv4_header->ip_p);
         goto stop_and_call;
     }
 
-    ntp_header = check_ntp(header, packet, &pointer);
+    session->headers.udp_header = check_udp(header, packet, &pointer);
 
-    if (ntp_header == NULL) {
-        log_print("(No NTP header)\n");
+    if (session->headers.udp_header == NULL) {
+        LOG_IF_VERBOSE log_print("(No UDP)\n");
         goto stop_and_call;
     }
 
-    available_mask |= CapAvailableNtp;
+    if (ntohs(session->headers.udp_header->source) != 123 && ntohs(session->headers.udp_header->dest) != 123) {
+        LOG_IF_VERBOSE log_print(
+            "(No NTP; ports are %u -> %u)\n",
+            ntohs(session->headers.udp_header->source),
+            ntohs(session->headers.udp_header->dest)
+        );
+        goto stop_and_call;
+    }
+
+    session->headers.ntp_header = check_ntp(header, packet, &pointer);
+
+    if (session->headers.ntp_header == NULL) {
+        LOG_IF_VERBOSE log_print("(No NTP)\n");
+        goto stop_and_call;
+    }
 
 stop_and_call:
-    session->headers.ethernet_header = ethernet_header;
-    session->headers.ipv4_header = ip_header;
-    session->headers.udp_header = udp_header;
-    session->headers.ntp_header = ntp_header;
-
-    session->callback(&session->headers, available_mask, session->user_data);
+    session->callback(&session->headers, session->user_data);
 }

@@ -28,7 +28,7 @@ libraries are used except for `pcap`.
 
 ---
 
-For parsing command line arguments, the C function `optarg` is used. Four commands are implemented:
+For parsing command line arguments, the C function `getopt` is used. Four commands are implemented:
 
 * `-d` for capturing packets on a network interface;
 * `-f` for reading save files (previous captures);

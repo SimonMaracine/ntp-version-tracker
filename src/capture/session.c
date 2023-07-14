@@ -102,7 +102,7 @@ err_handle:
 static int apply_filter(pcap_t* handle, const char* filter) {
     struct bpf_program filter_program = {0};
 
-    if (pcap_compile(handle, &filter_program, filter, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {  // TODO
+    if (pcap_compile(handle, &filter_program, filter, 1, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) {
         printf("Could not compile filter program `%s`: %s\n", filter, pcap_geterr(handle));
         return -1;
     }

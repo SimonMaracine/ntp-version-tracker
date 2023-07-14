@@ -1,7 +1,4 @@
-#include <stdint.h>
-#include <stddef.h>
 #include <string.h>
-#include <signal.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -14,6 +11,9 @@
 static void packet_captured(const CapPacketHeaders* headers, void* user) {
     (void) user;
 
+    char buffer[256];
+    int pointer = 0;
+
     if (headers->ethernet_header == NULL) {
         return;
     }
@@ -23,38 +23,42 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         char destination[18];
         formatted_mac(headers->ethernet_header->ether_shost, source);
         formatted_mac(headers->ethernet_header->ether_dhost, destination);
-        log_print("S %s --- D %s (T %hu)\n", source, destination, headers->ethernet_header->ether_type);
+        pointer += sprintf(buffer + pointer, "Ether %s --> %s (T %hu)", source, destination, headers->ethernet_header->ether_type);
     }
 
     if (headers->ipv4_header == NULL) {
-        return;
+        goto print;
     }
 
-    log_print("IP proto %u\n", headers->ipv4_header->ip_p);
+    pointer += sprintf(buffer + pointer, " IP proto %u", headers->ipv4_header->ip_p);
 
     {
         char source[16];
         char destination[16];
         formatted_ip(&headers->ipv4_header->ip_src, source);
         formatted_ip(&headers->ipv4_header->ip_dst, destination);
-        log_print("IP src %s --- dest %s\n", source, destination);
+        pointer += sprintf(buffer + pointer, " IP %s --> %s", source, destination);
     }
 
     if (headers->udp_header == NULL) {
-        return;
+        goto print;
     }
 
-    log_print(
-        "UDP src %hu ----> dest %hu\n",
+    pointer += sprintf(
+        buffer + pointer,
+        " UDP %hu --> %hu",
         ntohs(headers->udp_header->source),
         ntohs(headers->udp_header->dest)
     );
 
     if (headers->ntp_header == NULL) {
-        return;
+        goto print;
     }
 
-    log_print("NTP version %u\n", (headers->ntp_header->li_vn_mode & 0x38) >> 3);
+    pointer += sprintf(buffer + pointer, " NTP version %u", (headers->ntp_header->li_vn_mode & 0x38) >> 3);
+
+print:
+    log_print("%s\n", buffer);
 
     // Can do other stuff
 }

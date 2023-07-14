@@ -45,7 +45,7 @@ Reading save files is more straight forward.
 
 ---
 
-For logging various formatted messages, the `vfprintf` is used.
+For logging various formatted messages, the `vfprintf` function is used.
 
 One very important problem is the limiting the amount of logging that is done. Routers usually have
 limited amount of main memory. That's why there exists an option for specifying the maximum amount
@@ -62,14 +62,14 @@ respective compilation units.
 
 Dynamic memory allocations are not utilized at all.
 
-Error handling is done rigurously to minimze unexpected behavior.
+Error handling is done rigorously to minimze unexpected behavior.
 
 ---
 
 The processing of packets is done in two layers:
 
-1. In a callback function passed to pcap, which parses and checks the protocols the packet contains;
-2. in an another callback function, written in the high-level part of the codebase, which executes
+1. In a callback function passed to `pcap`, which parses and checks the protocols the packet contains.
+2. In an another callback function, written in the high-level part of the codebase, which executes
 actions depending on certain conditions, like which headers are available.
 
-Right now, the second callback function just reports the NTP versions.
+Right now, the second callback function just reports the `NTP` versions.

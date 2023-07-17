@@ -9,7 +9,7 @@ TARGET := ntp_version_tracker
 
 # Compiler flags
 WARNINGS := -Wall -Wextra -pedantic
-LIBS := -lpcap
+LIBS := -lpcap -lpthread
 FLAGS := -std=c11 -D _GNU_SOURCE
 # -D_POSIX_C_SOURCE=200809L
 

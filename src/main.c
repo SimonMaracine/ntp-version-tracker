@@ -3,14 +3,14 @@
 #include <assert.h>
 
 #include "capture/session.h"
+#include "export/queue.h"
+#include "export/export.h"
 #include "args.h"
 #include "logging.h"
 #include "helpers.h"
 
 // User side callback for processing packets
 static void packet_captured(const CapPacketHeaders* headers, void* user) {
-    (void) user;
-
     char buffer[256];
     int pointer = 0;
 
@@ -18,19 +18,17 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         return;
     }
 
-    {
-        char source[18];
-        char destination[18];
-        formatted_mac(headers->ethernet_header->ether_shost, source);
-        formatted_mac(headers->ethernet_header->ether_dhost, destination);
-        pointer += sprintf(
-            buffer + pointer,
-            "Ether %s --> %s (T %hu)",
-            source,
-            destination,
-            headers->ethernet_header->ether_type
-        );
-    }
+    char mac_source[18];
+    char mac_destination[18];
+    formatted_mac(headers->ethernet_header->ether_shost, mac_source);
+    formatted_mac(headers->ethernet_header->ether_dhost, mac_destination);
+    pointer += sprintf(
+        buffer + pointer,
+        "Ether %s --> %s (T %hu)",
+        mac_source,
+        mac_destination,
+        headers->ethernet_header->ether_type
+    );
 
     if (headers->ipv4_header == NULL) {
         goto print;
@@ -38,13 +36,11 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
 
     pointer += sprintf(buffer + pointer, " IP proto %u", headers->ipv4_header->ip_p);
 
-    {
-        char source[16];
-        char destination[16];
-        formatted_ip(&headers->ipv4_header->ip_src, source);
-        formatted_ip(&headers->ipv4_header->ip_dst, destination);
-        pointer += sprintf(buffer + pointer, " IP %s --> %s", source, destination);
-    }
+    char ip_source[16];
+    char ip_destination[16];
+    formatted_ip(&headers->ipv4_header->ip_src, ip_source);
+    formatted_ip(&headers->ipv4_header->ip_dst, ip_destination);
+    pointer += sprintf(buffer + pointer, " IP %s --> %s", ip_source, ip_destination);
 
     if (headers->udp_header == NULL) {
         goto print;
@@ -61,14 +57,20 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         goto print;
     }
 
-    pointer += sprintf(
-        buffer + pointer, " NTP version %u", (headers->ntp_header->li_vn_mode & 0x38) >> 3
-    );
+    const uint8_t ntp_version = (headers->ntp_header->li_vn_mode & 0x38) >> 3;
+    pointer += sprintf(buffer + pointer, " NTP version %u", ntp_version);
 
 print:
     log_print("%s\n", buffer);
 
     // Can do other stuff
+    Queue* queue = user;
+
+    MacNtp data = {0};
+    strcpy(data.source_mac, mac_source);
+    data.ntp_version = 0;  // FIXME enqueue only NTP packets
+
+    queue_enqueue(queue, &data);  // Do not handle error; there is nothing to do about it
 }
 
 static void interrupt_handler(int signal) {
@@ -122,13 +124,26 @@ static int capture(const Args* args) {
         return 1;
     }
 
-    if (cap_start_capture(&session, packet_captured, NULL) < 0) {
+    // Storing data for later processing
+    Queue queue = {0};
+
+    if (queue_initialize(&queue) < 0) {
         cap_uninitialize_session(&session);
         return 1;
     }
 
-    log_print("Quit\n");
+    export_start_thread(&queue, 20, 3);  // TODO default 7200, 300
 
+    if (cap_start_capture(&session, packet_captured, &queue) < 0) {
+        cap_uninitialize_session(&session);
+        return 1;
+    }
+
+    log_print("Exiting\n");
+
+    export_stop_thread();
+
+    queue_uninitialize(&queue);
     cap_uninitialize_session(&session);
     log_uninitialize();
 

@@ -1,0 +1,13 @@
+set terminal png
+
+sourcedata = sprintf("%s/%s", outdir, 'out_monitor.txt')
+outram = sprintf("%s/%s", outdir, 'ram.png')
+outcpu = sprintf("%s/%s", outdir, 'cpu.png')
+
+set output outram
+set title 'ntp-version-tracker ram usage'
+plot sourcedata using 0:1 with lines
+
+set output outcpu
+set title 'ntp-version-tracker cpu usage'
+plot sourcedata using 0:2 with lines

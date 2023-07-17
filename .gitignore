@@ -2,3 +2,8 @@
 /bin
 /.vscode
 *.log
+*.txt
+*.png
+
+!monitor/samples/**/*.png
+!monitor/samples/**/*.txt

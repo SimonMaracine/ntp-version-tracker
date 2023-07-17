@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include "helpers.h"
 
@@ -33,4 +34,10 @@ int set_interrupt_handler(void(*interrupt_handler)(int)) {
     }
 
     return 0;
+}
+
+int get_process_id() {
+    const pid_t pid = getpid();
+
+    return pid;
 }

@@ -35,4 +35,11 @@ void formatted_ip(const void* ip, char* out);
 */
 int set_interrupt_handler(void(*interrupt_handler)(int));
 
+/**
+ * Retrieve the process ID of the program.
+ *
+ * @return the process ID (PID)
+*/
+int get_process_id();
+
 #endif

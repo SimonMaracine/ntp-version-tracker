@@ -1,9 +1,7 @@
 # ntp-version-tracker
 
-<!-- FIXME what was the name of the router? -->
-
-It is a program made for Linux routers, for reporting vulnerable versions of the `NTP` protocol,
-by logging useful information.
+It is a program made for the Linux router `I-O DATA WN-AC1167GR`, for reporting vulnerable versions
+of the `NTP` protocol, by logging useful information.
 
 ## Purpose
 
@@ -30,9 +28,9 @@ libraries are used except for `pcap`.
 
 For parsing command line arguments, the C function `getopt` is used. Four commands are implemented:
 
-* `-d` for capturing packets on a network interface;
-* `-f` for reading save files (previous captures);
-* and of course, `-h` and `-v` for a nice command line interface.
+* `-d` for capturing packets on a network interface
+* `-f` for reading save files (previous captures)
+* Of course, `-h` and `-v` for a nice command line interface.
 
 But lots of options are available, that can change the behavior of the program, making it more
 versatille.
@@ -47,10 +45,10 @@ Reading save files is more straight forward.
 
 For logging various formatted messages, the `vfprintf` function is used.
 
-One very important problem is the limiting the amount of logging that is done. Routers usually have
+One very important problem is the amount of logging that could be done. Routers usually have
 limited amount of main memory. That's why there exists an option for specifying the maximum amount
 of bytes that can be written to the console and file. If that amount is exceeded, the program
-terminates automatically in a graceful manner.
+automatically terminates in a graceful manner.
 
 ---
 
@@ -68,8 +66,9 @@ Error handling is done rigorously to minimze unexpected behavior.
 
 The processing of packets is done in two layers:
 
-1. In a callback function passed to `pcap`, which parses and checks the protocols the packet contains.
+1. In a callback function passed to `pcap`, which parses and checks the protocols the packet
+   contains.
 2. In an another callback function, written in the high-level part of the codebase, which executes
-actions depending on certain conditions, like which headers are available.
+   actions depending on certain conditions, like which headers are available.
 
 Right now, the second callback function just reports the `NTP` versions.

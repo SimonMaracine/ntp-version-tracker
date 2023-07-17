@@ -23,7 +23,13 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         char destination[18];
         formatted_mac(headers->ethernet_header->ether_shost, source);
         formatted_mac(headers->ethernet_header->ether_dhost, destination);
-        pointer += sprintf(buffer + pointer, "Ether %s --> %s (T %hu)", source, destination, headers->ethernet_header->ether_type);
+        pointer += sprintf(
+            buffer + pointer,
+            "Ether %s --> %s (T %hu)",
+            source,
+            destination,
+            headers->ethernet_header->ether_type
+        );
     }
 
     if (headers->ipv4_header == NULL) {
@@ -55,7 +61,9 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         goto print;
     }
 
-    pointer += sprintf(buffer + pointer, " NTP version %u", (headers->ntp_header->li_vn_mode & 0x38) >> 3);
+    pointer += sprintf(
+        buffer + pointer, " NTP version %u", (headers->ntp_header->li_vn_mode & 0x38) >> 3
+    );
 
 print:
     log_print("%s\n", buffer);
@@ -71,7 +79,8 @@ static void interrupt_handler(int signal) {
 
 static void print_capture_status(const Args* args) {
     printf(
-        "device: %s, log_target: %s, max_bytes: %lu",
+        "PID: %d, device: %s, log_target: %s, max_bytes: %lu",
+        get_process_id(),
         args->device_or_file,
         args_log_target_format(args->log_target_mask),
         args->max_bytes

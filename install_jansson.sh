@@ -6,4 +6,4 @@ autoreconf -fi
 ./configure
 make
 make check
-sudo make install  # Should also build and install the static version
+sudo make install  # Should build and install the static version

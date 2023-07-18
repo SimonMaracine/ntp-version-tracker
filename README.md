@@ -23,8 +23,16 @@ For security, detect IoT devices that use old and vulnerable versions of `NTP`.
 
 ## Solutions and Implementation
 
-The program makes extensive use of the C standard library for accomplishing its tasks. No additional
-libraries are used except for `pcap`.
+Two versions can be built. One for the `I-O DATA WN-AC1167GR` router and another for
+any Linux machine. The latter is for development testing purposes and is built by invoking
+`make local_ntp_version_tracker`.
+
+The program makes extensive use of the C standard library for accomplishing its tasks. Also,
+additional system and third-party libraries are utilized: `pcap`, `pthread` and `jansson`
+respectively.
+
+`jansson` is included as a git submodule, but it needs to be built and installed in the system
+separately from the program. `install_jansson.sh` helper script is for this purpose.
 
 ---
 
@@ -34,8 +42,8 @@ For parsing command line arguments, the C function `getopt` is used. Four comman
 * `-f` for reading save files (previous captures)
 * Of course, `-h` and `-v` for a nice command line interface.
 
-But lots of options are available, that can change the behavior of the program, making it more
-versatille.
+Also, lots of options are available. They can alter the behavior of the program, making it more
+versatille. Run `ntp_version_tracker -h` to see a list of them.
 
 ---
 
@@ -60,9 +68,8 @@ codebase they belong to. This is to combat the lack of namespaces in C.
 Global variables are used only in appropriate places and even so, they are internal to their
 respective compilation units.
 
-Dynamic memory allocations are not utilized at all.
-
-Error handling is done rigorously to minimze unexpected behavior.
+Error handling is done rigorously to minimze unexpected behavior; even memory allocation calls with
+`malloc` are handled.
 
 ---
 
@@ -74,3 +81,12 @@ The processing of packets is done in two layers:
    actions depending on certain conditions, like which headers are available.
 
 Right now, the second callback function just reports the `NTP` versions.
+
+---
+
+Optionally, data can be periodically exported into the JSON format. This is done in a separate
+thread, as exporting can be done at any point, not only at shutdown time and IO operations can take
+time. Right now, data is only exported to the disk, but just as well could be transmitted over the
+network.
+
+This functionality is only available when capturing packets live.

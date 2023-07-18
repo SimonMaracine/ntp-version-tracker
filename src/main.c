@@ -103,7 +103,7 @@ static void print_capture_status(const Args* args) {
         printf(", verbose");
     }
 
-    if (args->export) {
+    if (args->export && args->command == CmdCaptureDevice) {
         printf(", export");
     }
 

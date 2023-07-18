@@ -133,6 +133,7 @@ static int capture(const Args* args) {
     }
 
     // Exporting is only available when live capturing
+
     if (args->export && args->command == CmdCaptureDevice) {
         Queue queue = {0};  // Storing data for later processing
 
@@ -140,9 +141,14 @@ static int capture(const Args* args) {
             goto err_capture_or_export;
         }
 
-        export_start_thread(&queue, 20, 3);  // TODO default 7200, 100
+        if (export_start_thread(&queue, 20, 3) < 0) {  // TODO default 7200, 100
+            goto err_capture_or_export;
+        }
 
         if (cap_start_capture(&session, packet_captured, &queue) < 0) {
+            // Stop the thread, as there is no one else to stop it
+            export_stop_thread();  // Do not handle error
+
             goto err_capture_or_export;
         }
 

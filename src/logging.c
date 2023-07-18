@@ -71,7 +71,7 @@ void log_uninitialize(void) {
         return;
     }
 
-    fclose(g_log_file);
+    fclose(g_log_file);  // Do not handle error
 }
 
 void log_print(const char* format, ...) {

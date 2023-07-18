@@ -34,6 +34,26 @@ static int append_to_json_array(json_t* array, const MacNtp* data) {
     }
 
     if (json_array_append_new(array, item) < 0) {
+        json_decref(item);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int send_to_file(json_t* object, const char* file_name) {  // Could be over the network
+    FILE* file = fopen(file_name, "w");
+
+    if (file == NULL) {
+        return -1;
+    }
+
+    if (json_dumpf(object, file, 0) < 0) {  // This overrides the previous contents
+        fclose(file);  // Just try to close
+        return -1;
+    }
+
+    if (fclose(file) != 0) {
         return -1;
     }
 
@@ -71,27 +91,20 @@ static void flush_and_export(Queue* queue) {
 
     // Dump to file
     const char* file_name = "exported.json";
-    FILE* file = fopen(file_name, "w");
 
-    if (file == NULL) {
-        goto err_export;
-    }
-
-    if (json_dumpf(object, file, 0) < 0) {  // This overrides the previous contents
+    if (send_to_file(object, file_name) < 0) {
         goto err_export;
     }
 
     json_decref(object);
-
-    if (fclose(file) != 0) {
-        goto err_export;
-    }
 
     log_print("Exported to `%s`\n", file_name);
 
     return;
 
 err_export:
+    json_decref(object);
+
     log_print("Exporting failed\n");
 }
 

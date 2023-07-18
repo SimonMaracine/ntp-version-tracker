@@ -24,7 +24,7 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
     formatted_mac(headers->ethernet_header->ether_dhost, mac_destination);
     pointer += sprintf(
         buffer + pointer,
-        "Ether %s --> %s (T %hu)",
+        "Ether %s -> %s (%hu)",
         mac_source,
         mac_destination,
         headers->ethernet_header->ether_type
@@ -40,7 +40,7 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
     char ip_destination[16];
     formatted_ip(&headers->ipv4_header->ip_src, ip_source);
     formatted_ip(&headers->ipv4_header->ip_dst, ip_destination);
-    pointer += sprintf(buffer + pointer, " IP %s --> %s", ip_source, ip_destination);
+    pointer += sprintf(buffer + pointer, " IP %s -> %s", ip_source, ip_destination);
 
     if (headers->udp_header == NULL) {
         goto print;
@@ -48,7 +48,7 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
 
     pointer += sprintf(
         buffer + pointer,
-        " UDP %hu --> %hu",
+        " UDP %hu -> %hu",
         ntohs(headers->udp_header->source),
         ntohs(headers->udp_header->dest)
     );
@@ -100,6 +100,10 @@ static void print_capture_status(const Args* args) {
         printf(", verbose");
     }
 
+    if (args->export) {
+        printf(", export");
+    }
+
     printf("\n");
 }
 
@@ -121,33 +125,46 @@ static int capture(const Args* args) {
     const CapType type = args->command == CmdCaptureDevice ? CapDevice : CapFile;
 
     if (cap_initialize_session(&session, args->device_or_file, type, args->filter, args->verbose) < 0) {
+        log_uninitialize();
         return 1;
     }
 
-    // Storing data for later processing
-    Queue queue = {0};
+    // Exporting is only available when live capturing
+    if (args->export && args->command == CmdCaptureDevice) {
+        Queue queue = {0};  // Storing data for later processing
 
-    if (queue_initialize(&queue) < 0) {
-        cap_uninitialize_session(&session);
-        return 1;
+        if (queue_initialize(&queue) < 0) {
+            goto err_capture_or_queue;
+        }
+
+        export_start_thread(&queue, 20, 3);  // TODO default 7200, 100
+
+        if (cap_start_capture(&session, packet_captured, &queue) < 0) {
+            goto err_capture_or_queue;
+        }
+
+        log_print("Exiting\n");
+
+        export_stop_thread();
+        queue_uninitialize(&queue);
+    } else {
+        if (cap_start_capture(&session, packet_captured, NULL) < 0) {
+            goto err_capture_or_queue;
+        }
+
+        log_print("Exiting\n");
     }
 
-    export_start_thread(&queue, 20, 3);  // TODO default 7200, 300
-
-    if (cap_start_capture(&session, packet_captured, &queue) < 0) {
-        cap_uninitialize_session(&session);
-        return 1;
-    }
-
-    log_print("Exiting\n");
-
-    export_stop_thread();
-
-    queue_uninitialize(&queue);
     cap_uninitialize_session(&session);
     log_uninitialize();
 
     return 0;
+
+err_capture_or_queue:
+    cap_uninitialize_session(&session);
+    log_uninitialize();
+
+    return 1;
 }
 
 int main(int argc, char** argv) {

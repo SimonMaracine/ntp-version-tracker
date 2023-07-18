@@ -27,6 +27,7 @@ typedef struct {
     const char* log_file;
     const char* filter;
     bool verbose;
+    bool export;
 } Args;
 
 /**

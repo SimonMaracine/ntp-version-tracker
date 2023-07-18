@@ -92,13 +92,14 @@ const Args* args_parse_arguments(int argc, char** argv) {
     args.log_file = "capture.log";
     args.filter = NULL;
     args.verbose = false;
+    args.export = false;
 
     // Don't print error messages from the library
     opterr = 0;
 
     int c = 0;
 
-    while ((c = getopt(argc, argv, "d:f:t:m:l:F:Vhv")) != -1) {
+    while ((c = getopt(argc, argv, "d:f:t:m:l:F:Vehv")) != -1) {
         switch (c) {
             case 'd':
             case 'f':
@@ -135,6 +136,10 @@ const Args* args_parse_arguments(int argc, char** argv) {
                 break;
             case 'V':
                 args.verbose = true;
+
+                break;
+            case 'e':
+                args.export = true;
 
                 break;
             case 'h':
@@ -206,18 +211,22 @@ void args_print_help() {
         "    -F  Set the filter string\n"
         "        Possible values can be found in `man pcap-filter`\n"
         "    -V  Print additional information\n"
+        "    -e  Export data to a json file named `exported.json`\n"
         "\n"
         "defaults:\n"
         "    log_target = c\n"
         "    max_bytes = 8388608 (8 MiB)\n"
         "    log_file = ./capture.log\n"
+        "    verbose -> off\n"
+        "    export -> off\n"
         "\n"
         "example:\n"
-        "    ntp_version_tracker -d wlo1 -t cf -m 16777216 -l ~/capture.log -F 'udp port 123'\n"
+        "    ntp_version_tracker -d wlo1 -t cf -m 16777216 -l ~/capture.log -F 'udp port 123' -e\n"
         "\n"
         "    This captures packets on device `wlo1` and writes log messages in both the console and\n"
         "    the specified file. It automatically closes when 16 MiB have been written to logs.\n"
-        "    It filters any packets that are not NTP. No verbose information is logged.\n"
+        "    It filters any packets that are not NTP. No verbose information is logged, but data is\n"
+        "    periodically exported to a json file.\n"
     );
 }
 

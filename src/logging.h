@@ -32,7 +32,7 @@ int log_initialize(const char* file_name, unsigned int target_mask, unsigned lon
  *
  * @see log_initialize
 */
-void log_uninitialize();
+void log_uninitialize(void);
 
 /**
  * Print a log message to the targets specified in log_initialize. It takes the same arguments as printf.

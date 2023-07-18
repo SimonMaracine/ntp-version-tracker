@@ -64,7 +64,7 @@ print:
     log_print("%s\n", buffer);
 
     // Can do other stuff
-    Queue* queue = user;
+    Queue* queue = user;  // FIXME
 
     MacNtp data = {0};
     strcpy(data.source_mac, mac_source);
@@ -134,22 +134,25 @@ static int capture(const Args* args) {
         Queue queue = {0};  // Storing data for later processing
 
         if (queue_initialize(&queue) < 0) {
-            goto err_capture_or_queue;
+            goto err_capture_or_export;
         }
 
         export_start_thread(&queue, 20, 3);  // TODO default 7200, 100
 
         if (cap_start_capture(&session, packet_captured, &queue) < 0) {
-            goto err_capture_or_queue;
+            goto err_capture_or_export;
         }
 
         log_print("Exiting\n");
 
-        export_stop_thread();
+        if (export_stop_thread() < 0) {
+            goto err_capture_or_export;
+        }
+
         queue_uninitialize(&queue);
     } else {
         if (cap_start_capture(&session, packet_captured, NULL) < 0) {
-            goto err_capture_or_queue;
+            goto err_capture_or_export;
         }
 
         log_print("Exiting\n");
@@ -160,7 +163,7 @@ static int capture(const Args* args) {
 
     return 0;
 
-err_capture_or_queue:
+err_capture_or_export:
     cap_uninitialize_session(&session);
     log_uninitialize();
 

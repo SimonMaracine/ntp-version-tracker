@@ -43,12 +43,12 @@ const Args* args_parse_arguments(int argc, char** argv);
 /**
  * Print a help text message.
 */
-void args_print_help();
+void args_print_help(void);
 
 /**
  * Print program and pcap versions.
 */
-void args_print_version();
+void args_print_version(void);
 
 /**
  * Return a string representation of the log targets indicated by the bitmask.

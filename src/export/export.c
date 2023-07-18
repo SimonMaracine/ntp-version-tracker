@@ -148,7 +148,7 @@ int export_start_thread(Queue* queue, int export_rate_seconds, uint32_t export_t
     return 0;
 }
 
-int export_stop_thread() {
+int export_stop_thread(void) {
     g_running = 0;
 
     const int result = pthread_join(g_thread, NULL);

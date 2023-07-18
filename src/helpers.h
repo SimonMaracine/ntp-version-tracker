@@ -9,7 +9,7 @@
  *
  * @return true, if the machine has a little endian processor, false otherwise
 */
-bool is_little_endian();
+bool is_little_endian(void);
 
 /**
  * Get a string representation of the MAC address. The buffer must be 18 bytes in size.
@@ -40,6 +40,6 @@ int set_interrupt_handler(void(*interrupt_handler)(int));
  *
  * @return the process ID (PID)
 */
-int get_process_id();
+int get_process_id(void);
 
 #endif

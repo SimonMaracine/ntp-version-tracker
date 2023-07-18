@@ -92,13 +92,13 @@ int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* use
 /**
  * Stop the capture or reading loop. It can be called from other threads or from interrupts.
 */
-void cap_stop_signal();
+void cap_stop_signal(void);
 
 /**
  * Get a string representing the pcap version.
  *
  * @return a version string
 */
-const char* cap_get_pcap_version();
+const char* cap_get_pcap_version(void);
 
 #endif

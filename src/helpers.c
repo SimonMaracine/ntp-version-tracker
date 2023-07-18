@@ -7,7 +7,7 @@
 
 #include "helpers.h"
 
-bool is_little_endian() {
+bool is_little_endian(void) {
     const volatile uint32_t whatever = 0x0001;
     return ((const volatile uint8_t*) &whatever)[0] == 1;
 }
@@ -36,7 +36,7 @@ int set_interrupt_handler(void(*interrupt_handler)(int)) {
     return 0;
 }
 
-int get_process_id() {
+int get_process_id(void) {
     const pid_t pid = getpid();
 
     return pid;

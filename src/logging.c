@@ -66,7 +66,7 @@ int log_initialize(const char* file_name, unsigned int target_mask, unsigned lon
     return 0;
 }
 
-void log_uninitialize() {
+void log_uninitialize(void) {
     if (g_log_file == NULL) {
         return;
     }

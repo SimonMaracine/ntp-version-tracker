@@ -191,7 +191,7 @@ const Args* args_parse_arguments(int argc, char** argv) {
     return &args;
 }
 
-void args_print_help() {
+void args_print_help(void) {
     printf(
         "usage:\n"
         "    ntp_version_tracker -d <device> [OPTIONS...]\n"
@@ -230,7 +230,7 @@ void args_print_help() {
     );
 }
 
-void args_print_version() {
+void args_print_version(void) {
     printf("ntp-version-tracker v0.1.0 | %s\n", cap_get_pcap_version());
 }
 

@@ -277,7 +277,7 @@ int cap_start_capture(CapSession* session, CapPacketCaptured callback, void* use
     return result;
 }
 
-void cap_stop_signal() {
+void cap_stop_signal(void) {
     g_running = 0;
 
     if (g_session != NULL) {
@@ -285,6 +285,6 @@ void cap_stop_signal() {
     }
 }
 
-const char* cap_get_pcap_version() {
+const char* cap_get_pcap_version(void) {
     return pcap_lib_version();
 }

@@ -56,7 +56,7 @@ to see a list of all of them.
 
 ---
 
-Live capturing of packets uses a non-blocking mechanism together with `pselect`.
+Live capturing of packets uses a **non-blocking** mechanism together with `pselect`.
 
 Reading save files is more straight forward.
 
@@ -72,7 +72,7 @@ automatically terminates in a graceful manner.
 ---
 
 The code is written in such a way that it's clear from the function and symbol names were in the
-codebase they belong to. This is to combat the lack of namespaces in C.
+codebase they belong to. This is to combat the **lack of namespaces** in C.
 
 Global variables are used only in appropriate places and even so, they are internal to their
 respective compilation units.
@@ -93,9 +93,13 @@ Right now, the second callback function just reports the `NTP` versions.
 
 ---
 
-Optionally, data can be periodically exported into the JSON format. This is done in a separate
-thread, as exporting can be done at any point, not only at shutdown time and IO operations can take
-time. Right now, data is only exported to the disk, but just as well could be transmitted over the
-network.
+Optionally, data can be periodically exported into the `JSON` format. This is done in a separate
+**thread**, as exporting can be done at any point, not only at shutdown time and IO operations can
+take time. Right now, data is only exported to the disk, but just as well could be transmitted over
+the network.
+
+To facilitate the inter-thread communication, an **atomic queue** is used. Luckily, the requirements
+aren't hard to achieve. In short, the main thread puts data onto the queue and the exporting thread
+only takes data off from the queue.
 
 This functionality is only available when capturing packets live.

@@ -63,8 +63,11 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
 print:
     log_print("%s\n", buffer);
 
-    // Can do other stuff
-    Queue* queue = user;  // FIXME
+    if (user == NULL) {
+        return;
+    }
+
+    Queue* queue = user;
 
     MacNtp data = {0};
     strcpy(data.source_mac, mac_source);

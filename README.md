@@ -24,8 +24,11 @@ For security, detect IoT devices that use old and vulnerable versions of `NTP`.
 ## Solutions and Implementation
 
 Two versions can be built. One for the `I-O DATA WN-AC1167GR` router and another for
-any Linux machine. The latter is for development testing purposes and is built by invoking
-`make local_ntp_version_tracker`.
+any Linux machine. The latter is for development testing purposes and is built by invoking:
+
+```sh
+   make local_ntp_version_tracker
+```
 
 The program makes extensive use of the C standard library for accomplishing its tasks. Also,
 additional system and third-party libraries are utilized: `pcap`, `pthread` and `jansson`
@@ -40,10 +43,16 @@ For parsing command line arguments, the C function `getopt` is used. Four comman
 
 * `-d` for capturing packets on a network interface
 * `-f` for reading save files (previous captures)
-* Of course, `-h` and `-v` for a nice command line interface.
+* Of course, `-h` and `-v` for a nice command line interface
 
 Also, lots of options are available. They can alter the behavior of the program, making it more
-versatille. Run `ntp_version_tracker -h` to see a list of them.
+versatille. Run
+
+```sh
+   ntp_version_tracker -h
+```
+
+to see a list of all of them.
 
 ---
 

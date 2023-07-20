@@ -4,6 +4,9 @@
 *.log
 *.txt
 *.png
+*.json
 
-!monitor/samples/**/*.png
+!monitor/samples/**/*.log
 !monitor/samples/**/*.txt
+!monitor/samples/**/*.png
+!monitor/samples/**/*.json

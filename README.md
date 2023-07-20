@@ -93,15 +93,56 @@ Right now, the second callback function just reports the `NTP` versions.
 
 ---
 
-Optionally, data can be periodically exported into the `JSON` format. This is done in a separate
-**thread**, as exporting can be done at any point, not only at shutdown time and IO operations can
-take time. Right now, data is only exported to the disk, but it could just as well be transmitted
-over the network.
+Optionally, data can be periodically exported into the `JSON` format. This is done in a
+**separate thread**, as exporting can be done at any point, not only at shutdown time and IO
+operations can take time. Right now, data is only exported to the disk, but it could just as well be
+transmitted over the network.
 
-To facilitate the inter-thread communication, an **atomic queue** is used. Luckily, the requirements
-aren't hard to achieve. In short, the main thread puts data onto the queue and the exporting thread
-only takes data off from the queue.
+Luckily, the main synchronization problem is not hard to solve. So to facilitate the inter-thread
+communication, an **atomic queue** is used. In short, the main thread puts data onto the queue and
+the exporting thread only takes data off from the queue.
 
 This functionality is only available when capturing packets live.
 
-<!-- TODO write about profiling -->
+## Profiling
+
+There are scripts for measuring the virtual memory and CPU utilization of the program. Then two
+graphs are generated using `gnuplot`, which describe the activity of the program.
+
+---
+
+### Normal conditions
+
+The program ran on the router for 2.5 hours with filter, together with the monitoring script.
+These were the results:
+
+![RAM usage normal conditions](monitor/samples/normal_conditions_filter/ram.png)
+
+![CPU usage normal conditions](monitor/samples/normal_conditions_filter/cpu.png)
+
+---
+
+### Stress Test
+
+The program run for about 30 seconds twice, in stress conditions, once with filter and once without.
+`iperf` was used to generate network traffic: `10 Mb/sec of UDP packets`.
+
+#### Without Filter
+
+![RAM usage stress test without filter](monitor/samples/stress_test_no_filter2/ram.png)
+
+![CPU usage stress test without filter](monitor/samples/stress_test_no_filter2/cpu.png)
+
+#### With Filter
+
+![RAM usage stress test with filter](monitor/samples/stress_test_filter2/ram.png)
+
+![CPU usage stress test with filter](monitor/samples/stress_test_filter2/cpu.png)
+
+---
+
+It is clear from the stress tests that the `pcap` filter does a great job at minimizing
+computation.
+
+The test under normal conditions showed some CPU usage, even with the filter, because there were
+some NTP packets travelling around.

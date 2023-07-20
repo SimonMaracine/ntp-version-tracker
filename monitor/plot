@@ -4,7 +4,7 @@ outcpu = sprintf("%s/%s", outdir, 'cpu.png')
 
 set terminal png
 set xlabel 'time (s)'
-set offsets 0, 0, 3, 0
+set offsets 0, 0, 2, 0
 
 set output outram
 set title 'ntp-version-tracker ram usage'

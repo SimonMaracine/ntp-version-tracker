@@ -4,17 +4,36 @@
 #include <pthread.h>
 #include <assert.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "queue.h"
 
-static void lock(pthread_mutex_t* mutex) {  // Don't check errors at runtime; maybe I should
-    const int result = pthread_mutex_lock(mutex);
-    assert(result == 0);
+static void lock(pthread_mutex_t* mutex) {
+    // Try three times with 10 ms in between
+
+    for (unsigned int i = 0; i < 3; i++) {
+        if (pthread_mutex_lock(mutex) == 0) {
+            return;
+        }
+
+        usleep(10 * 1000);
+    }
+
+    abort();
 }
 
 static void unlock(pthread_mutex_t* mutex) {
-    const int result = pthread_mutex_unlock(mutex);
-    assert(result == 0);
+    // Try three times with 10 ms in between
+
+    for (unsigned int i = 0; i < 3; i++) {
+        if (pthread_mutex_unlock(mutex) == 0) {
+            return;
+        }
+
+        usleep(10 * 1000);
+    }
+
+    abort();
 }
 
 int queue_initialize(Queue* queue) {

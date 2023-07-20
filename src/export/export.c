@@ -82,7 +82,7 @@ static void flush_and_export(Queue* queue) {
     // Append all the items
     while (!queue_is_empty(queue)) {
         MacNtp data;
-        queue_dequeue(queue, &data);  // Error not handled, not needed
+        queue_dequeue(queue, &data);  // Don't handle error
 
         if (append_to_json_array(array, &data) < 0) {
             goto err_export;

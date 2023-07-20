@@ -69,7 +69,7 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
         strcpy(data.source_mac, mac_source);
         data.ntp_version = ntp_version;
 
-        queue_enqueue(queue, &data);  // Do not handle error
+        queue_enqueue(queue, &data);  // Don't handle error
     }
 
 print:

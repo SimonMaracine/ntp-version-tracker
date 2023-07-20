@@ -27,7 +27,7 @@ Two versions can be built. One for the `I-O DATA WN-AC1167GR` router and another
 any Linux machine. The latter is for development testing purposes and is built by invoking:
 
 ```sh
-   make local_ntp_version_tracker
+make local_ntp_version_tracker
 ```
 
 The program makes extensive use of the C standard library for accomplishing its tasks. Also,
@@ -49,7 +49,7 @@ Also, lots of options are available. They can alter the behavior of the program,
 versatille. Run
 
 ```sh
-   ntp_version_tracker -h
+ntp_version_tracker -h
 ```
 
 to see a list of all of them.
@@ -95,11 +95,13 @@ Right now, the second callback function just reports the `NTP` versions.
 
 Optionally, data can be periodically exported into the `JSON` format. This is done in a separate
 **thread**, as exporting can be done at any point, not only at shutdown time and IO operations can
-take time. Right now, data is only exported to the disk, but just as well could be transmitted over
-the network.
+take time. Right now, data is only exported to the disk, but it could just as well be transmitted
+over the network.
 
 To facilitate the inter-thread communication, an **atomic queue** is used. Luckily, the requirements
 aren't hard to achieve. In short, the main thread puts data onto the queue and the exporting thread
 only takes data off from the queue.
 
 This functionality is only available when capturing packets live.
+
+<!-- TODO write about profiling -->

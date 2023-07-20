@@ -67,7 +67,7 @@ static ArgsCommand parse_capture_command(int option) {
             return CmdCaptureFile;
         default:
             assert(0);
-            break;
+            return CmdNone;
     }
 }
 
@@ -79,7 +79,7 @@ static ArgsCommand parse_miscellaneous_command(int option) {
             return CmdVersion;
         default:
             assert(0);
-            break;
+            return CmdNone;
     }
 }
 

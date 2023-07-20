@@ -10,8 +10,8 @@ TARGET := ntp_version_tracker
 # Compiler flags
 WARNINGS := -Wall -Wextra -pedantic
 LIBS := -lpcap -lpthread -ljansson
-FLAGS := -std=c11 -D _GNU_SOURCE
-DEFINITIONS ?=
+FLAGS := -std=c11
+DEFINITIONS := -D_GNU_SOURCE
 
 # Option for compiling with optimization
 BUILD_RELEASE ?=

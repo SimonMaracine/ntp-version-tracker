@@ -11,7 +11,6 @@ TARGET := ntp_version_tracker
 WARNINGS := -Wall -Wextra -pedantic
 LIBS := -lpcap -lpthread -ljansson
 FLAGS := -std=c11 -D _GNU_SOURCE
-# -D_POSIX_C_SOURCE=200809L
 
 # Option for compiling with optimization
 BUILD_RELEASE ?=

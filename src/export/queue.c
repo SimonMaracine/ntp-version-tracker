@@ -7,7 +7,7 @@
 
 #include "queue.h"
 
-static void lock(pthread_mutex_t* mutex) {  // TODO check errors at runtime or not?
+static void lock(pthread_mutex_t* mutex) {  // Don't check errors at runtime; maybe I should
     const int result = pthread_mutex_lock(mutex);
     assert(result == 0);
 }

@@ -10,7 +10,7 @@
  *
  * @param queue a pointer to the queue where data is written
  * @param export_rate_seconds how many seconds should pass in between data exports
- * @param export_treshold how many items must be in the queue to not drop them
+ * @param export_treshold how many items must be in the queue to not drop them at shutdown
  * @return 0 on success, -1 on error
  * @see Queue
 */

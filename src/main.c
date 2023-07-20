@@ -58,22 +58,22 @@ static void packet_captured(const CapPacketHeaders* headers, void* user) {
     }
 
     const uint8_t ntp_version = (headers->ntp_header->li_vn_mode & 0x38) >> 3;
-    pointer += sprintf(buffer + pointer, " NTP version %u", ntp_version);
+    pointer += sprintf(buffer + pointer, " NTP v %u", ntp_version);
+
+    // Put data on to the queue, if available
+
+    if (user != NULL) {
+        Queue* queue = user;
+
+        MacNtp data = {0};
+        strcpy(data.source_mac, mac_source);
+        data.ntp_version = ntp_version;
+
+        queue_enqueue(queue, &data);  // Do not handle error
+    }
 
 print:
     log_print("%s\n", buffer);
-
-    if (user == NULL) {
-        return;
-    }
-
-    Queue* queue = user;
-
-    MacNtp data = {0};
-    strcpy(data.source_mac, mac_source);
-    data.ntp_version = 0;  // FIXME enqueue only NTP packets
-
-    queue_enqueue(queue, &data);  // Do not handle error; there is nothing to do about it
 }
 
 static void interrupt_handler(int signal) {
@@ -111,6 +111,7 @@ static void print_capture_status(const Args* args) {
 }
 
 // Main operation of the program
+
 static int capture(const Args* args) {
     print_capture_status(args);
 
@@ -141,7 +142,7 @@ static int capture(const Args* args) {
             goto err_capture_or_export;
         }
 
-        if (export_start_thread(&queue, 20, 3) < 0) {  // TODO default 7200, 100
+        if (export_start_thread(&queue, 3600, 100) < 0) {  // Export every hour
             goto err_capture_or_export;
         }
 

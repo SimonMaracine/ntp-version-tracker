@@ -11,12 +11,14 @@ TARGET := ntp_version_tracker
 WARNINGS := -Wall -Wextra -pedantic
 LIBS := -lpcap -lpthread -ljansson
 FLAGS := -std=c11 -D _GNU_SOURCE
+DEFINITIONS ?=
 
 # Option for compiling with optimization
 BUILD_RELEASE ?=
 
 ifeq ($(BUILD_RELEASE), 1)
 FLAGS += -O2
+DEFINITIONS += -DNDEBUG
 else
 FLAGS += -O0
 endif
@@ -37,7 +39,7 @@ local_$(TARGET): $(OBJECTS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@mkdir -p $(@D)
-	$(CC) -c $< -o $@ $(WARNINGS) $(FLAGS)
+	$(CC) -c $< -o $@ $(WARNINGS) $(DEFINITIONS) $(FLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)

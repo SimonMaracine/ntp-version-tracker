@@ -1,0 +1,17 @@
+1060 18% ./ntp_version_tracker
+1060 26% ./ntp_version_tracker
+1060 29% ./ntp_version_tracker
+1060 33% ./ntp_version_tracker
+1060 19% ./ntp_version_tracker
+1060 30% ./ntp_version_tracker
+1060 24% ./ntp_version_tracker
+1060 28% ./ntp_version_tracker
+1060 18% ./ntp_version_tracker
+1060 30% ./ntp_version_tracker
+1060 27% ./ntp_version_tracker
+1060 30% ./ntp_version_tracker
+1060 19% ./ntp_version_tracker
+1060 29% ./ntp_version_tracker
+1060 29% ./ntp_version_tracker
+1060 29% ./ntp_version_tracker
+1060 18% ./ntp_version_tracker

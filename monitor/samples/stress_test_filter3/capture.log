@@ -1,0 +1,5 @@
+[Thu Jul 20 12:08:08 2023] STARTING to capture on device `br-lan`
+[Thu Jul 20 12:08:28 2023] Ether e8:44:7e:02:d0:e8 -> 34:76:c5:47:c6:06 (8) IP proto 17 IP 192.168.1.246 -> 162.159.200.123 UDP 48657 -> 123 NTP v 4
+[Thu Jul 20 12:08:28 2023] Ether 34:76:c5:47:c6:06 -> e8:44:7e:02:d0:e8 (8) IP proto 17 IP 162.159.200.123 -> 192.168.1.246 UDP 123 -> 48657 NTP v 4
+[Thu Jul 20 12:09:30 2023] STOPPED capturing on device `br-lan`
+[Thu Jul 20 12:09:30 2023] Exiting

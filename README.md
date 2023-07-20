@@ -125,24 +125,24 @@ These were the results:
 ### Stress Test
 
 The program run for about 30 seconds twice, in stress conditions, once with filter and once without.
-`iperf` was used to generate network traffic: `10 Mb/sec of UDP packets`.
+`iperf` was used to generate network traffic: `~28 Mb/sec of UDP packets`.
 
 #### Without Filter
 
-![RAM usage stress test without filter](monitor/samples/stress_test_no_filter2/ram.png)
+![RAM usage stress test without filter](monitor/samples/stress_test_no_filter3/ram.png)
 
-![CPU usage stress test without filter](monitor/samples/stress_test_no_filter2/cpu.png)
+![CPU usage stress test without filter](monitor/samples/stress_test_no_filter3/cpu.png)
 
 #### With Filter
 
-![RAM usage stress test with filter](monitor/samples/stress_test_filter2/ram.png)
+![RAM usage stress test with filter](monitor/samples/stress_test_filter3/ram.png)
 
-![CPU usage stress test with filter](monitor/samples/stress_test_filter2/cpu.png)
+![CPU usage stress test with filter](monitor/samples/stress_test_filter3/cpu.png)
 
 ---
 
 It is clear from the stress tests that the `pcap` filter does a great job at minimizing
 computation.
 
-The test under normal conditions showed some CPU usage, even with the filter, because there were
-some NTP packets travelling around.
+The test under normal conditions showed some CPU usage, even with the filter, because there were NTP
+packets travelling around.

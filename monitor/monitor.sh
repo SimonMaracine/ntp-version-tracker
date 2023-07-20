@@ -2,12 +2,13 @@
 
 # This script works only on that particular router
 
-# The output format should provide:
+# The output format should provide two columns:
 #     MEM  CPU
 #     123  2
 #     123  2
 #     137  4
 #     136  3
+#     ...  ...
 
 if [ "$1" = "" ]; then
     echo "Please provide a pid"

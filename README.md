@@ -77,7 +77,7 @@ codebase they belong to. This is to combat the **lack of namespaces** in C.
 Global variables are used only in appropriate places and even so, they are internal to their
 respective compilation units.
 
-Error handling is done rigorously to minimze unexpected behavior; even memory allocation calls with
+Error handling is done rigorously to minimize unexpected behavior; even memory allocation calls with
 `malloc` are handled.
 
 ---
@@ -106,7 +106,7 @@ This functionality is only available when capturing packets live.
 
 ## Profiling
 
-There are scripts for measuring the virtual memory and CPU utilization of the program. Then two
+There are scripts for measuring the virtual memory and CPU utilization of the program. Two
 graphs are generated using `gnuplot`, which describe the activity of the program.
 
 ---
@@ -124,8 +124,8 @@ These were the results:
 
 ### Stress Test
 
-The program run for about 30 seconds twice, in stress conditions, once with filter and once without.
-`iperf` was used to generate network traffic: `~28 Mb/sec of UDP packets`.
+The program run for about 16-60 seconds twice, in stress conditions, once with filter and once
+without. `iperf` was used to generate network traffic: `~28 Mb/sec of UDP packets`.
 
 #### Without Filter
 

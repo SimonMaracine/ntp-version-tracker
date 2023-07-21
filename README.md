@@ -2,8 +2,9 @@
 
 <!-- TODO needs updating -->
 
-It is a program made for the Linux router `I-O DATA WN-AC1167GR`, for reporting vulnerable versions
-of the `NTP` protocol, by logging useful information.
+It is a program developed for Linux routers, for reporting vulnerable versions
+of the `NTP` protocol, by logging useful information. It was tested on a `I-O DATA WN-AC1167GR` mips
+router with `OpenWrt 5.4.238`, as well on a x86_64 Ubuntu laptop with `Linux 5.15.0-76-generic`.
 
 ## Purpose
 
@@ -15,20 +16,13 @@ For security, detect IoT devices that use old and vulnerable versions of `NTP`.
 * Use of the `pcap` API for capturing packets and reading save files
 * Parsing `Ethernet`, `IP`, `UDP` and `NTP` headers
 * Detecting `NTP` packets and reporting the versions
-* Applying filters
+* Applying pcap filters
 * Logging of information in the console and in a file
 * Graceful exiting and handling of errors
 * Written in the C programming language
 * Use of a special SDK for compiling for the target router architecture
 
 ## Solutions and Implementation
-
-Two versions can be built. One for the `I-O DATA WN-AC1167GR` router and another for
-any Linux machine. The latter is for development testing purposes and is built by invoking:
-
-```sh
-make local_ntp_version_tracker
-```
 
 The program makes extensive use of the C standard library for accomplishing its tasks. Also,
 additional system and third-party libraries are utilized: `pcap`, `pthread` and `jansson`
@@ -111,10 +105,10 @@ graphs are generated using `gnuplot`, which describe the activity of the program
 
 ---
 
-### Normal conditions
+### Daily Use Conditions
 
-The program ran on the router for 2.5 hours with filter, together with the monitoring script.
-These were the results:
+The program ran on the router for 2.5 hours with pcap filtering, together with the monitoring
+script. These were the results:
 
 ![RAM usage normal conditions](monitor/samples/normal_conditions_filter/ram.png)
 
@@ -124,25 +118,24 @@ These were the results:
 
 ### Stress Test
 
-The program run for about 16-60 seconds twice, in stress conditions, once with filter and once
+The program ran for several seconds twice, in stress conditions, once with pcap filtering and once
 without. `iperf` was used to generate network traffic: `~28 Mb/sec of UDP packets`.
 
-#### Without Filter
+#### Without pcap Filter
 
-![RAM usage stress test without filter](monitor/samples/stress_test_no_filter3/ram.png)
+![RAM usage stress test without pcap filter](monitor/samples/stress_test_no_filter3/ram.png)
 
-![CPU usage stress test without filter](monitor/samples/stress_test_no_filter3/cpu.png)
+![CPU usage stress test without pcap filter](monitor/samples/stress_test_no_filter3/cpu.png)
 
-#### With Filter
+#### With pcap Filter
 
-![RAM usage stress test with filter](monitor/samples/stress_test_filter3/ram.png)
+![RAM usage stress test with pcap filter](monitor/samples/stress_test_filter3/ram.png)
 
-![CPU usage stress test with filter](monitor/samples/stress_test_filter3/cpu.png)
+![CPU usage stress test with pcap filter](monitor/samples/stress_test_filter3/cpu.png)
 
 ---
 
-It is clear from the stress tests that the `pcap` filter does a great job at minimizing
-computation.
+It is clear from the stress tests that the pcap filter does a great job at minimizing computation.
 
-The test under normal conditions showed some CPU usage, even with the filter, because there were NTP
-packets travelling around.
+The test under daily use conditions showed some CPU usage, even with the filter, because there were
+NTP packets travelling around.

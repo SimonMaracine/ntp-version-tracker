@@ -27,12 +27,13 @@ endif
 
 all: $(TARGET)
 
-# For router; run setup.sh before
+# For that specific router (static linking)
+# Run setup.sh before
 $(TARGET): $(OBJECTS)
 	@mkdir -p $(BIN_DIR)
 	$(CC) $^ -o $(BIN_DIR)/$@ $(FLAGS) -static $(LIBS)
 
-# For any Linux machine
+# For development
 local_$(TARGET): $(OBJECTS)
 	@mkdir -p $(BIN_DIR)
 	$(CC) $^ -o $(BIN_DIR)/$@ $(FLAGS) $(LIBS)

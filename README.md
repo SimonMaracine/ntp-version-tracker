@@ -25,8 +25,7 @@ For security, detect IoT devices that use old and vulnerable versions of `NTP`.
 ## Solutions and Implementation
 
 The program makes extensive use of the C standard library for accomplishing its tasks. Also,
-additional system and third-party libraries are utilized: `pcap`, `pthread` and `jansson`
-respectively.
+additional system and third-party libraries are utilized: `pcap`, `pthread` and `jansson`.
 
 `jansson` is included as a git submodule, but it needs to be built and installed in the system
 separately from the program. `install_jansson.sh` helper script is for this purpose.
@@ -88,7 +87,7 @@ Right now, the second callback function just reports the `NTP` versions.
 ---
 
 Optionally, data can be periodically exported into the `JSON` format. This is done in a
-**separate thread**, as exporting can be done at any point, not only at shutdown time and IO
+**separate thread**, as exporting can occur at any point, not only at shutdown time and IO
 operations can take time. Right now, data is only exported to the disk, but it could just as well be
 transmitted over the network.
 
